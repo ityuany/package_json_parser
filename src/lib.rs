@@ -1,14 +1,19 @@
 use bin::Bin;
 use bugs::Bugs;
+use directories::Directories;
+use engines::Engines;
 use license::License;
 use name::Name;
 use package_manager::PackageManager;
 use person::Person;
 use publish_config::PublishConfig;
 use r#type::Type;
+use repository::RepositoryOrString;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use std::{
+    collections::HashMap,
     fs::File,
     io::{BufReader, Error},
 };
@@ -16,11 +21,14 @@ use version::Version;
 
 mod bin;
 mod bugs;
+mod directories;
+mod engines;
 mod license;
 mod name;
 mod package_manager;
 mod person;
 mod publish_config;
+mod repository;
 mod r#type;
 mod utils;
 mod validator;
@@ -92,20 +100,30 @@ pub struct PackageJsonParser {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bin: Option<Bin>,
     // pub typings: Option<String>,
-    // pub man: Option<Man>,
-    // pub directories: Option<Directories>,
-    // pub repository: Option<Repository>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub man: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub directories: Option<Directories>,
+
+    #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repository: Option<RepositoryOrString>,
+
     // pub funding: Option<Funding>,
-    // pub config: Option<Config>,
-    // #[serde(rename = "publishConfig")]
-    // pub publish_config: Option<PublishConfig>,
-    // pub module: Option<String>,
+    // pub config: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub module: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub readme: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub private: Option<bool>,
-    // pub engines: Option<Engines>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub engines: Option<Engines>,
+
     #[serde(rename = "engineStrict", skip_serializing_if = "Option::is_none")]
     pub engine_strict: Option<bool>,
 
@@ -114,21 +132,27 @@ pub struct PackageJsonParser {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cpu: Option<Vec<String>>,
-    // typesVersions
-    // pub scripts: Option<Scripts>,
-    // pub dependencies: Option<FxHashMap<String, String>>,
-    // #[serde(rename = "devDependencies")]
-    // pub dev_dependencies: Option<FxHashMap<String, String>>,
-    // #[serde(rename = "optionalDependencies")]
-    // pub optional_dependencies: Option<FxHashMap<String, String>>,
-    // #[serde(rename = "peerDependencies")]
-    // pub peer_dependencies: Option<FxHashMap<String, String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scripts: Option<FxHashMap<String, String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dependencies: Option<FxHashMap<String, String>>,
+
+    #[serde(rename = "devDependencies", skip_serializing_if = "Option::is_none")]
+    pub dev_dependencies: Option<FxHashMap<String, String>>,
+
+    #[serde(
+        rename = "optionalDependencies",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub optional_dependencies: Option<FxHashMap<String, String>>,
+
+    #[serde(rename = "peerDependencies", skip_serializing_if = "Option::is_none")]
+    pub peer_dependencies: Option<FxHashMap<String, String>>,
     // #[serde(rename = "peerDependenciesMeta")]
     // pub peer_dependencies_meta: Option<FxHashMap<String, String>>,
     // pub overrides: Option<FxHashMap<String, OverrideValue>>,
-    // #[serde(rename = "packageManager")]
-    // pub package_manager: Option<String>,
-    //bundle_dependencies
 }
 
 impl PackageJsonParser {
