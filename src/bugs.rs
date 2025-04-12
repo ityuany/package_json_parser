@@ -1,75 +1,92 @@
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 
-use crate::utils::{is_email, is_url};
+use crate::validator::Validator;
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Validate)]
 pub struct BugsItem {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate(custom = Validator::use_option_url)]
     pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate(custom = Validator::use_option_email)]
     pub email: Option<String>,
 }
 
-impl<'de> Deserialize<'de> for BugsItem {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let v = serde_json::Value::deserialize(deserializer)?;
-        if let serde_json::Value::Object(v) = v {
-            let url = v
-                .get("url")
-                .and_then(|v| v.as_str())
-                .map(String::from)
-                .map(|url| {
-                    if !is_url(&url) {
-                        Err(serde::de::Error::custom("Invalid url"))
-                    } else {
-                        Ok(url)
-                    }
-                })
-                .transpose()?;
-            let email = v
-                .get("email")
-                .and_then(|v| v.as_str())
-                .map(String::from)
-                .map(|email| {
-                    if !is_email(&email) {
-                        Err(serde::de::Error::custom("Invalid email"))
-                    } else {
-                        Ok(email)
-                    }
-                })
-                .transpose()?;
-            Ok(BugsItem { url, email })
-        } else {
-            Err(serde::de::Error::custom("Invalid bugs"))
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(untagged)]
 pub enum Bugs {
-    Url(String),
-    Email(String),
+    Url(#[validate(custom = Validator::use_url)] String),
+    #[validate(custom = Validator::use_email)]
+    Email(#[validate(custom = Validator::use_email)] String),
+    #[validate]
     BugsItem(BugsItem),
 }
 
-impl<'de> Deserialize<'de> for Bugs {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = serde_json::Value::deserialize(deserializer)?;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        match value {
-            serde_json::Value::String(v) if is_url(&v) => Ok(Bugs::Url(v)),
-            serde_json::Value::String(v) if is_email(&v) => Ok(Bugs::Email(v)),
-            serde_json::Value::Object(map) => {
-                let item = serde_json::from_value(serde_json::Value::Object(map))
-                    .map_err(serde::de::Error::custom)?;
-                Ok(Bugs::BugsItem(item))
-            }
-            _ => Err(serde::de::Error::custom("Invalid bugs")),
-        }
+    #[test]
+    fn should_pass_validate_bugs_item() {
+        let bugs_item = BugsItem {
+            url: Some("https://example.com".to_string()),
+            email: Some("test@example.com".to_string()),
+        };
+        assert!(bugs_item.validate().is_ok());
+    }
+
+    #[test]
+    fn should_fail_when_item_url_is_invalid() {
+        let bugs_item = BugsItem {
+            url: Some("invalid".to_string()),
+            email: Some("test@example.com".to_string()),
+        };
+        assert!(bugs_item.validate().is_err());
+    }
+
+    #[test]
+    fn should_fail_when_item_email_is_invalid() {
+        let bugs_item = BugsItem {
+            url: Some("https://example.com".to_string()),
+            email: Some("invalid".to_string()),
+        };
+        assert!(bugs_item.validate().is_err());
+    }
+
+    #[test]
+    fn should_pass_validate_bugs() {
+        let bugs = Bugs::BugsItem(BugsItem {
+            url: Some("https://example.com".to_string()),
+            email: Some("test@example.com".to_string()),
+        });
+        assert!(bugs.validate().is_ok());
+    }
+
+    #[test]
+    fn should_fail_when_url_is_invalid1() {
+        let bugs = Bugs::Url("invalid".to_string());
+        let res = bugs.validate();
+        println!("{:?}", res);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn should_fail_when_email_is_invalid() {
+        let bugs = Bugs::Email("invalid".to_string());
+        let res = bugs.validate();
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn should_pass_validate_bugs_item_when_url_is_none() {
+        let bugs = Bugs::Url("https://example.com".to_string());
+        assert!(bugs.validate().is_ok());
+    }
+
+    #[test]
+    fn should_pass_validate_bugs_item_when_email_is_none() {
+        let bugs = Bugs::Email("test@example.com".to_string());
+        assert!(bugs.validate().is_ok());
     }
 }

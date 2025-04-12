@@ -1,33 +1,36 @@
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Type {
-    Commonjs,
-    Module,
-}
+#[derive(Debug, PartialEq, Eq, Validate, Serialize, Deserialize)]
+pub struct Type(#[validate(pattern = "^(commonjs|module)$")] String);
 
-impl Serialize for Type {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            Type::Commonjs => serializer.serialize_str("commonjs"),
-            Type::Module => serializer.serialize_str("module"),
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_pass_validate_type() {
+        let type_ = Type("commonjs".to_string());
+        assert!(type_.validate().is_ok());
     }
-}
 
-impl<'de> Deserialize<'de> for Type {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        match s.as_str() {
-            "commonjs" => Ok(Type::Commonjs),
-            "module" => Ok(Type::Module),
-            _ => Err(serde::de::Error::custom("Invalid type")),
-        }
+    #[test]
+    fn should_fail_when_type_is_invalid() {
+        let type_ = Type("invalid".to_string());
+        assert!(type_.validate().is_err());
+    }
+
+    #[test]
+    fn should_pass_serialize_type() {
+        let type_ = Type("commonjs".to_string());
+        let serialized = serde_json::to_string(&type_).unwrap();
+        assert_eq!(serialized, "\"commonjs\"");
+    }
+
+    #[test]
+    fn should_pass_deserialize_type() {
+        let type_ = Type("commonjs".to_string());
+        let deserialized = serde_json::from_str::<Type>(r#""commonjs""#).unwrap();
+        assert_eq!(deserialized, type_);
     }
 }

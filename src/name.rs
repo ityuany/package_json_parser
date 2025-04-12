@@ -1,30 +1,27 @@
-use lazy_regex::regex;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 
-#[derive(Debug, PartialEq, Serialize)]
-pub struct Name(String);
+#[derive(Debug, PartialEq, Serialize, Deserialize, Validate)]
+pub struct Name(
+    #[validate(
+        pattern = "^(?:(?:@(?:[a-z0-9-*~][a-z0-9-*._~]*)?/[a-z0-9-._~])|[a-z0-9-~])[a-z0-9-._~]*$"
+    )]
+    String,
+);
 
-impl<'de> Deserialize<'de> for Name {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let name = String::deserialize(deserializer)?;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        // 验证包名长度
-        if name.len() > 214 {
-            return Err(serde::de::Error::custom("Package name too long"));
-        }
+    #[test]
+    fn should_pass_validate_name() {
+        let name = Name("test".to_string());
+        assert!(name.validate().is_ok());
+    }
 
-        let r = regex!(
-            "^(?:(?:@(?:[a-z0-9-*~][a-z0-9-*._~]*)?/[a-z0-9-._~])|[a-z0-9-~])[a-z0-9-._~]*$"
-        );
-
-        if !r.is_match(&name) {
-            return Err(serde::de::Error::custom(
-                r#"package name does not match the pattern of "^(?:(?:@(?:[a-z0-9-*~][a-z0-9-*._~]*)?/[a-z0-9-._~])|[a-z0-9-~])[a-z0-9-._~]*$"."#,
-            ));
-        }
-        Ok(Name(name))
+    #[test]
+    fn should_fail_when_name_is_invalid() {
+        let name = Name("tEst".to_string());
+        assert!(name.validate().is_err());
     }
 }

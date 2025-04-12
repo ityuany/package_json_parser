@@ -1,0 +1,6 @@
+{
+  "publishConfig": {
+
+    "registry": "invalid"
+  }
+}

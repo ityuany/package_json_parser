@@ -1,9 +1,12 @@
 use bugs::Bugs;
 use license::License;
 use name::Name;
+use package_manager::PackageManager;
 use person::Person;
+use publish_config::PublishConfig;
 use r#type::Type;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 use std::{
     fs::File,
     io::{BufReader, Error},
@@ -13,27 +16,76 @@ use version::Version;
 mod bugs;
 mod license;
 mod name;
+mod package_manager;
 mod person;
+mod publish_config;
 mod r#type;
 mod utils;
+mod validator;
 mod version;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct PackageJsonParser {
+    #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<Name>,
+
+    #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<Version>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub keywords: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub homepage: Option<String>,
+
+    #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub bugs: Option<Bugs>,
+
+    #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<License>,
+
+    #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub author: Option<Person>,
+
+    #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub contributors: Option<Vec<Person>>,
+
+    #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub maintainers: Option<Vec<Person>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub files: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub main: Option<String>,
-    pub types: Option<String>,
+
+    #[validate]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<Type>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub types: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub typings: Option<String>,
+
+    #[validate]
+    #[serde(rename = "packageManager", skip_serializing_if = "Option::is_none")]
+    pub package_manager: Option<PackageManager>,
+
+    #[validate]
+    #[serde(rename = "publishConfig", skip_serializing_if = "Option::is_none")]
+    pub publish_config: Option<PublishConfig>,
     // pub browser: Option<String>,
     // pub bin: Option<Bin>,
     // pub typings: Option<String>,
@@ -48,9 +100,14 @@ pub struct PackageJsonParser {
     // pub readme: Option<String>,
     // pub private: Option<bool>,
     // pub engines: Option<Engines>,
-    // pub os: Option<Vec<String>>,
-    // pub cpu: Option<Vec<String>>,
+    #[serde(rename = "engineStrict", skip_serializing_if = "Option::is_none")]
+    pub engine_strict: Option<bool>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub os: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cpu: Option<Vec<String>>,
     // typesVersions
     // pub scripts: Option<Scripts>,
     // pub dependencies: Option<FxHashMap<String, String>>,
@@ -79,61 +136,21 @@ impl PackageJsonParser {
 
 #[cfg(test)]
 mod tests {
+    use serde_valid::Validate;
+
     use super::*;
 
     #[test]
-    fn test_name() {
-        let package_json_parser = PackageJsonParser::parse("fixtures/name-package.json");
-        assert!(package_json_parser.is_err());
-    }
+    fn should_pass_validate_package_json_parser() {
+        let json = r#"{"packageManager": "npm2@1.0.0"}"#;
+        let package_json_parser = serde_json::from_str::<PackageJsonParser>(json).unwrap();
 
-    #[test]
-    fn test_version() {
-        let package_json_parser = PackageJsonParser::parse("fixtures/version-package.json");
-        assert!(package_json_parser.is_err());
-    }
+        println!("{:#?}", package_json_parser);
 
-    #[test]
-    fn test_bugs() {
-        let package_json_parser = PackageJsonParser::parse("fixtures/bugs-url-string.json");
-        assert!(package_json_parser.is_err());
-    }
+        let r = package_json_parser.validate();
 
-    #[test]
-    fn test_bugs_object() {
-        let package_json_parser = PackageJsonParser::parse("fixtures/bugs-object.json");
-        assert!(package_json_parser.is_ok());
-    }
+        println!("{:#?}", r);
 
-    #[test]
-    fn test_license() {
-        let package_json_parser = PackageJsonParser::parse("fixtures/license-apache-2.0.json");
-        assert!(package_json_parser.is_ok());
-        assert_eq!(
-            package_json_parser.unwrap().license,
-            Some(License::Apache20)
-        );
-    }
-
-    #[test]
-    fn test_author() {
-        let package_json_parser = PackageJsonParser::parse("fixtures/author-object.json");
-        assert!(package_json_parser.is_ok());
-    }
-
-    #[test]
-    fn test_author_string() {
-        let package_json_parser = PackageJsonParser::parse("fixtures/author-string.json");
-        assert!(package_json_parser.is_ok());
-    }
-
-    #[test]
-    fn test_type() {
-        let package_json_parser = PackageJsonParser::parse("fixtures/type-module.json");
-        assert!(package_json_parser.is_ok());
-        assert_eq!(package_json_parser.unwrap().r#type, Some(Type::Module));
-        let package_json_parser = PackageJsonParser::parse("fixtures/type-commonjs.json");
-        assert!(package_json_parser.is_ok());
-        assert_eq!(package_json_parser.unwrap().r#type, Some(Type::Commonjs));
+        assert!(r.is_ok());
     }
 }

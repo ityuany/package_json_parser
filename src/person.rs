@@ -1,79 +1,61 @@
+use crate::validator::Validator;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 
-use crate::utils::{is_email, is_url};
-
-#[derive(Debug)]
+#[derive(Debug, Validate, Serialize, Deserialize)]
 pub enum Person {
     String(String),
-    Object(PersonObject),
+
+    Object(#[validate] PersonObject),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct PersonObject {
     pub name: String,
+    #[validate(custom = Validator::use_option_email)]
     pub email: Option<String>,
+    #[validate(custom = Validator::use_option_url)]
     pub url: Option<String>,
 }
 
-impl<'de> Deserialize<'de> for Person {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let v = serde_json::Value::deserialize(deserializer)?;
-        if let serde_json::Value::String(value) = v {
-            Ok(Person::String(value))
-        } else if let serde_json::Value::Object(map) = v {
-            let name = map
-                .get("name")
-                .and_then(|name| name.as_str())
-                .map(|name| name.to_string())
-                .ok_or_else(|| serde::de::Error::custom("Invalid person"))?;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-            let email = map
-                .get("email")
-                .and_then(|email| email.as_str())
-                .map(|email| {
-                    if !is_email(email) {
-                        return Err(serde::de::Error::custom("Invalid email"));
-                    }
-                    Ok(email.to_string())
-                })
-                .transpose()?;
-
-            let url = map
-                .get("url")
-                .and_then(|url| url.as_str())
-                .map(|url| {
-                    if !is_url(url) {
-                        return Err(serde::de::Error::custom("Invalid url"));
-                    }
-                    Ok(url.to_string())
-                })
-                .transpose()?;
-
-            Ok(Person::Object(PersonObject { name, email, url }))
-        } else {
-            Err(serde::de::Error::custom("Invalid person"))
-        }
+    #[test]
+    fn should_pass_validate_person() {
+        let person = Person::String("test".to_string());
+        assert!(person.validate().is_ok());
     }
-}
 
-impl Serialize for Person {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            Person::String(s) => serializer.serialize_str(s),
-            Person::Object(o) => {
-                use serde::ser::SerializeStruct;
-                let mut state = serializer.serialize_struct("Person", 3)?;
-                state.serialize_field("name", &o.name)?;
-                state.serialize_field("email", &o.email)?;
-                state.serialize_field("url", &o.url)?;
-                state.end()
-            }
-        }
+    #[test]
+    fn should_pass_validate_person_object() {
+        let person = Person::Object(PersonObject {
+            name: "test".to_string(),
+            email: Some("test@example.com".to_string()),
+            url: Some("https://example.com".to_string()),
+        });
+        assert!(person.validate().is_ok());
+    }
+
+    #[test]
+    fn should_fail_when_person_object_email_is_invalid() {
+        let person = Person::Object(PersonObject {
+            name: "test".to_string(),
+            email: Some("invalid".to_string()),
+            url: None,
+        });
+        let res = person.validate();
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn should_fail_when_person_object_url_is_invalid() {
+        let person = Person::Object(PersonObject {
+            name: "test".to_string(),
+            email: None,
+            url: Some("invalid".to_string()),
+        });
+        assert!(person.validate().is_err());
     }
 }

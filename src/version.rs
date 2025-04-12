@@ -1,26 +1,39 @@
-use lazy_regex::regex;
 use serde::{Deserialize, Serialize};
+use serde_valid::Validate;
 
-#[derive(Debug, PartialEq, Serialize)]
-pub struct Version(String);
+#[derive(Debug, PartialEq, Serialize, Deserialize, Validate)]
+pub struct Version(
+    #[validate(
+        pattern = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
+    )]
+    String,
+);
 
-impl<'de> Deserialize<'de> for Version {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let v = String::deserialize(deserializer)?;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        let r = regex!(
-            r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
-        );
+    #[test]
+    fn should_pass_validate_version() {
+        let version = Version("1.0.0".to_string());
+        assert!(version.validate().is_ok());
+    }
 
-        if !r.is_match(&v) {
-            return Err(serde::de::Error::custom(
-                r#"version does not match the pattern of "^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"#,
-            ));
-        }
+    #[test]
+    fn should_pass_validate_version_with_prerelease() {
+        let version = Version("1.0.0-alpha.1".to_string());
+        assert!(version.validate().is_ok());
+    }
 
-        Ok(Version(v))
+    #[test]
+    fn should_pass_validate_version_with_build() {
+        let version = Version("1.0.0+build.1".to_string());
+        assert!(version.validate().is_ok());
+    }
+
+    #[test]
+    fn should_pass_validate_version_with_prerelease_and_build() {
+        let version = Version("1.0.0-alpha.1+build.1".to_string());
+        assert!(version.validate().is_ok());
     }
 }
