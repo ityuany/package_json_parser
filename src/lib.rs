@@ -13,7 +13,6 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use std::{
-    collections::HashMap,
     fs::File,
     io::{BufReader, Error},
 };
@@ -150,9 +149,6 @@ pub struct PackageJsonParser {
 
     #[serde(rename = "peerDependencies", skip_serializing_if = "Option::is_none")]
     pub peer_dependencies: Option<FxHashMap<String, String>>,
-    // #[serde(rename = "peerDependenciesMeta")]
-    // pub peer_dependencies_meta: Option<FxHashMap<String, String>>,
-    // pub overrides: Option<FxHashMap<String, OverrideValue>>,
 }
 
 impl PackageJsonParser {
