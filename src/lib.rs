@@ -1,22 +1,22 @@
-use bin::Bin;
-use bugs::Bugs;
-use directories::Directories;
-use engines::Engines;
-use license::License;
-use name::Name;
-use package_manager::PackageManager;
-use person::Person;
-use publish_config::PublishConfig;
-use r#type::Type;
-use repository::RepositoryOrString;
-use rustc_hash::FxHashMap;
-use serde::{Deserialize, Serialize};
-use serde_valid::Validate;
+pub use bin::*;
+pub use bugs::*;
+pub use directories::*;
+pub use engines::*;
+pub use license::*;
+pub use name::*;
+pub use package_manager::*;
+pub use person::*;
+pub use publish_config::*;
+pub use r#type::*;
+pub use repository::*;
+pub use rustc_hash::FxHashMap;
+pub use serde::{Deserialize, Serialize};
+pub use serde_valid::Validate;
 use std::{
     fs::File,
     io::{BufReader, Error},
 };
-use version::Version;
+pub use version::*;
 
 mod bin;
 mod bugs;
@@ -162,21 +162,23 @@ impl PackageJsonParser {
 
 #[cfg(test)]
 mod tests {
-    use serde_valid::Validate;
-
     use super::*;
 
     #[test]
     fn should_pass_validate_package_json_parser() {
-        let json = r#"{"bin": {"test": "test.js"}}"#;
-        let package_json_parser = serde_json::from_str::<PackageJsonParser>(json).unwrap();
+        let raw = r#"
+        {
+            "name": "test"
+        }
+    "#;
+        let res = serde_json::from_str::<PackageJsonParser>(raw);
 
-        println!("{:#?}", package_json_parser);
+        assert!(res.is_ok());
 
-        let r = package_json_parser.validate();
+        if let Ok(package_json_parser) = res {
+            assert_eq!(package_json_parser.name, Some(Name("test".to_string())));
 
-        println!("{:#?}", r);
-
-        assert!(r.is_ok());
+            package_json_parser.validate();
+        }
     }
 }

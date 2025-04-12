@@ -35,6 +35,16 @@ impl Validator {
         Ok(())
     }
 
+    pub fn use_url_or_email(url_or_email: &String) -> Result<(), serde_valid::validation::Error> {
+        if !Validator::is_url(url_or_email) && !Validator::is_email(url_or_email) {
+            return Err(serde_valid::validation::Error::Custom(
+                "url or email must be a valid url or email".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
     pub fn use_option_url(url: &Option<String>) -> Result<(), serde_valid::validation::Error> {
         if let Some(url) = url {
             Validator::use_url(url)

@@ -6,7 +6,7 @@ pub struct Name(
     #[validate(
         pattern = "^(?:(?:@(?:[a-z0-9-*~][a-z0-9-*._~]*)?/[a-z0-9-._~])|[a-z0-9-~])[a-z0-9-._~]*$"
     )]
-    String,
+    pub String,
 );
 
 #[cfg(test)]

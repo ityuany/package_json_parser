@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 
 #[derive(Debug, PartialEq, Eq, Validate, Serialize, Deserialize)]
-pub struct Type(#[validate(pattern = "^(commonjs|module)$")] String);
+pub struct Type(#[validate(pattern = "^(commonjs|module)$")] pub String);
 
 #[cfg(test)]
 mod tests {

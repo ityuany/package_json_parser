@@ -8,6 +8,7 @@ pub struct BugsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[validate(custom = Validator::use_option_url)]
     pub url: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[validate(custom = Validator::use_option_email)]
     pub email: Option<String>,
@@ -16,11 +17,8 @@ pub struct BugsItem {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(untagged)]
 pub enum Bugs {
-    Url(#[validate(custom = Validator::use_url)] String),
-    #[validate(custom = Validator::use_email)]
-    Email(#[validate(custom = Validator::use_email)] String),
-    #[validate]
-    BugsItem(BugsItem),
+    UrlOrEmail(#[validate(custom = Validator::use_url_or_email)] String),
+    BugsItem(#[validate] BugsItem),
 }
 
 #[cfg(test)]
@@ -65,7 +63,7 @@ mod tests {
 
     #[test]
     fn should_fail_when_url_is_invalid1() {
-        let bugs = Bugs::Url("invalid".to_string());
+        let bugs = Bugs::UrlOrEmail("invalid".to_string());
         let res = bugs.validate();
         println!("{:?}", res);
         assert!(res.is_err());
@@ -73,20 +71,20 @@ mod tests {
 
     #[test]
     fn should_fail_when_email_is_invalid() {
-        let bugs = Bugs::Email("invalid".to_string());
+        let bugs = Bugs::UrlOrEmail("invalid".to_string());
         let res = bugs.validate();
         assert!(res.is_err());
     }
 
     #[test]
     fn should_pass_validate_bugs_item_when_url_is_none() {
-        let bugs = Bugs::Url("https://example.com".to_string());
+        let bugs = Bugs::UrlOrEmail("https://example.com".to_string());
         assert!(bugs.validate().is_ok());
     }
 
     #[test]
     fn should_pass_validate_bugs_item_when_email_is_none() {
-        let bugs = Bugs::Email("test@example.com".to_string());
+        let bugs = Bugs::UrlOrEmail("test@example.com".to_string());
         assert!(bugs.validate().is_ok());
     }
 }

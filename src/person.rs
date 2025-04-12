@@ -2,14 +2,14 @@ use crate::validator::Validator;
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 
-#[derive(Debug, Validate, Serialize, Deserialize)]
+#[derive(Debug, Validate, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(untagged)]
 pub enum Person {
     String(String),
-
     Object(#[validate] PersonObject),
 }
 
-#[derive(Debug, Serialize, Deserialize, Validate)]
+#[derive(Debug, Serialize, Deserialize, Validate, Eq, PartialEq)]
 pub struct PersonObject {
     pub name: String,
     #[validate(custom = Validator::use_option_email)]
