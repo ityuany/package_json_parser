@@ -1,3 +1,4 @@
+use bin::Bin;
 use bugs::Bugs;
 use license::License;
 use name::Name;
@@ -13,6 +14,7 @@ use std::{
 };
 use version::Version;
 
+mod bin;
 mod bugs;
 mod license;
 mod name;
@@ -87,7 +89,8 @@ pub struct PackageJsonParser {
     #[serde(rename = "publishConfig", skip_serializing_if = "Option::is_none")]
     pub publish_config: Option<PublishConfig>,
     // pub browser: Option<String>,
-    // pub bin: Option<Bin>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bin: Option<Bin>,
     // pub typings: Option<String>,
     // pub man: Option<Man>,
     // pub directories: Option<Directories>,
@@ -97,8 +100,11 @@ pub struct PackageJsonParser {
     // #[serde(rename = "publishConfig")]
     // pub publish_config: Option<PublishConfig>,
     // pub module: Option<String>,
-    // pub readme: Option<String>,
-    // pub private: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub readme: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private: Option<bool>,
     // pub engines: Option<Engines>,
     #[serde(rename = "engineStrict", skip_serializing_if = "Option::is_none")]
     pub engine_strict: Option<bool>,
@@ -142,7 +148,7 @@ mod tests {
 
     #[test]
     fn should_pass_validate_package_json_parser() {
-        let json = r#"{"packageManager": "npm2@1.0.0"}"#;
+        let json = r#"{"bin": {"test": "test.js"}}"#;
         let package_json_parser = serde_json::from_str::<PackageJsonParser>(json).unwrap();
 
         println!("{:#?}", package_json_parser);
