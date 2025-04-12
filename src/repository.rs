@@ -21,6 +21,23 @@ mod tests {
     use super::*;
 
     #[test]
+    fn should_pass_when_repository_is_object() {
+        let raw =
+            r#"{"type": "git", "url": "https://github.com/rust-lang/rust", "directory": "src"}"#;
+        let repository: RepositoryOrString = serde_json::from_str(raw).unwrap();
+
+        assert!(repository.validate().is_ok());
+    }
+
+    #[test]
+    fn should_pass_when_repository_is_string() {
+        let raw = r#""https://github.com/rust-lang/rust""#;
+        let repository: RepositoryOrString = serde_json::from_str(raw).unwrap();
+
+        assert!(repository.validate().is_ok());
+    }
+
+    #[test]
     fn should_pass_validate_repository() {
         let repository = Repository {
             r#type: "git".to_string(),
