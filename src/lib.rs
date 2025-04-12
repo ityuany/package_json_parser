@@ -1,14 +1,15 @@
-pub use bin::*;
-pub use bugs::*;
-pub use directories::*;
-pub use engines::*;
-pub use license::*;
-pub use name::*;
-pub use package_manager::*;
-pub use person::*;
-pub use publish_config::*;
-pub use r#type::*;
-pub use repository::*;
+pub use def::bin::*;
+pub use def::bugs::*;
+pub use def::directories::*;
+pub use def::engines::*;
+pub use def::license::*;
+pub use def::name::*;
+pub use def::package_manager::*;
+pub use def::person::*;
+pub use def::publish_config::*;
+pub use def::r#type::*;
+pub use def::repository::*;
+pub use def::version::*;
 pub use rustc_hash::FxHashMap;
 pub use serde::{Deserialize, Serialize};
 pub use serde_valid::Validate;
@@ -16,22 +17,10 @@ use std::{
     fs::File,
     io::{BufReader, Error},
 };
-pub use version::*;
 
-mod bin;
-mod bugs;
-mod directories;
-mod engines;
-mod license;
-mod name;
-mod package_manager;
-mod person;
-mod publish_config;
-mod repository;
-mod r#type;
-mod utils;
+mod def;
+mod ext;
 mod validator;
-mod version;
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct PackageJsonParser {

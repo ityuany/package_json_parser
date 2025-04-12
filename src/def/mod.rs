@@ -1,0 +1,12 @@
+pub mod bin;
+pub mod bugs;
+pub mod directories;
+pub mod engines;
+pub mod license;
+pub mod name;
+pub mod package_manager;
+pub mod person;
+pub mod publish_config;
+pub mod repository;
+pub mod r#type;
+pub mod version;
