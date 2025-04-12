@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 
-#[derive(Debug, PartialEq, Validate, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Validate, Serialize, Deserialize, Eq)]
 pub struct PackageManager(
     #[validate(pattern = r#"(npm|pnpm|yarn|bun)@\d+\.\d+\.\d+(-.+)?"#)] pub String,
 );
