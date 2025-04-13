@@ -1,12 +1,12 @@
 [package]
-name = "package_json_parser"
-version = "0.1.0"
 edition = "2021"
+name    = "package_json_parser"
+version = "0.1.0"
 
 [dependencies]
-rustc-hash    = { version = "2.1.1" }
-serde = { version = "1.0.215", features = ["derive"] }
-serde_json = "1.0.105"
-lazy-regex = "3.4.1"
+lazy-regex  = "3.4.1"
+rustc-hash  = { version = "2.1.1" }
+serde       = { version = "1.0.215", features = ["derive"] }
+serde_json  = "1.0.105"
 serde_valid = "1.0.5"
-thiserror = "2.0.12"
+thiserror   = "2.0.12"
