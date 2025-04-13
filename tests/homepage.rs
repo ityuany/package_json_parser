@@ -3,9 +3,15 @@ use package_json_parser::{PackageJsonParser, Validate};
 #[test]
 fn should_pass_when_homepage_is_valid() {
   let raw = r#"
-        {
-            "homepage": "https://test.com"
-        }
+       {
+  "name": "snm_i",
+  "version": "1.0.0",
+  "packageManager": "npm@9.0.0",
+  "dependencies": {
+    "react": "18.3.1"
+  }
+}
+
     "#;
 
   let res = serde_json::from_str::<PackageJsonParser>(raw);

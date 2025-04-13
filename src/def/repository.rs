@@ -3,11 +3,14 @@ use serde_valid::Validate;
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct Repository {
-  pub r#type: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub r#type: Option<String>,
 
-  pub url: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub url: Option<String>,
 
-  pub directory: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub directory: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
@@ -40,9 +43,9 @@ mod tests {
   #[test]
   fn should_pass_validate_repository() {
     let repository = Repository {
-      r#type: "git".to_string(),
-      url: "https://github.com/rust-lang/rust".to_string(),
-      directory: "src".to_string(),
+      r#type: Some("git".to_string()),
+      url: Some("https://github.com/rust-lang/rust".to_string()),
+      directory: Some("src".to_string()),
     };
     let res = repository.validate();
 
@@ -52,9 +55,9 @@ mod tests {
   #[test]
   fn should_pass_validate_repository_or_string() {
     let repository = RepositoryOrString::Repository(Repository {
-      r#type: "git".to_string(),
-      url: "https://github.com/rust-lang/rust".to_string(),
-      directory: "src".to_string(),
+      r#type: Some("git".to_string()),
+      url: Some("https://github.com/rust-lang/rust".to_string()),
+      directory: Some("src".to_string()),
     });
     let res = repository.validate();
 
