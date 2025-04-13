@@ -19,7 +19,7 @@ pub struct PublishConfig {
 }
 
 fn validate_access(access: &Option<String>) -> Result<(), serde_valid::validation::Error> {
-  if let Some(ref access) = access {
+  if let Some(access) = access {
     let r = regex!(r"^(public|restricted|private)$");
     if !r.is_match(access) {
       return Err(serde_valid::validation::Error::Custom(
