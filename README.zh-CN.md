@@ -42,8 +42,60 @@ fn main() {
         Ok(package) => {
             println!("包名: {}", package.name);
             println!("版本: {}", package.version);
+            
+            // 验证 package.json
+            match package.validate() {
+                Ok(_) => println!("package.json 验证通过"),
+                Err(e) => println!("package.json 验证失败: {}", e),
+            }
         }
         Err(e) => println!("解析 package.json 时出错: {}", e),
+    }
+}
+```
+
+### 验证示例
+
+```rust
+use package_json_parser::PackageJson;
+
+fn main() {
+    // 验证有效的 package.json
+    let valid_json = r#"
+    {
+        "name": "my-package",
+        "version": "1.0.0",
+        "description": "A test package",
+        "main": "index.js",
+        "scripts": {
+            "test": "echo \"Error: no test specified\" && exit 1"
+        },
+        "keywords": ["test"],
+        "author": "Test User",
+        "license": "MIT"
+    }
+    "#;
+
+    let package = PackageJson::from_str(valid_json).unwrap();
+    assert!(package.validate().is_ok());
+
+    // 验证无效的 package.json
+    let invalid_json = r#"
+    {
+        "name": "my-package",
+        "version": "invalid-version",  // 无效的版本号
+        "description": 123,            // 无效的类型
+        "main": true                   // 无效的类型
+    }
+    "#;
+
+    let package = PackageJson::from_str(invalid_json).unwrap();
+    if let Err(e) = package.validate() {
+        println!("验证错误: {}", e);
+        // 输出类似:
+        // 验证错误: version: 无效的版本号格式
+        // description: 必须是字符串
+        // main: 必须是字符串
     }
 }
 ```
