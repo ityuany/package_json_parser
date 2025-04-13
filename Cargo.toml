@@ -3,10 +3,6 @@ name = "package_json_parser"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "package_json_parser"
-path = "src/main.rs"
-
 [dependencies]
 rustc-hash    = { version = "2.1.1" }
 schemafy_lib = "0.6.0"

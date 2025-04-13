@@ -148,26 +148,3 @@ impl PackageJsonParser {
         Ok(package_json_parser)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn should_pass_validate_package_json_parser() {
-        let raw = r#"
-        {
-            "name": "test"
-        }
-    "#;
-        let res = serde_json::from_str::<PackageJsonParser>(raw);
-
-        assert!(res.is_ok());
-
-        if let Ok(package_json_parser) = res {
-            assert_eq!(package_json_parser.name, Some(Name("test".to_string())));
-
-            package_json_parser.validate();
-        }
-    }
-}

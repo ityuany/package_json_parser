@@ -17,6 +17,7 @@ pub enum RepositoryOrString {
     String(String),
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
