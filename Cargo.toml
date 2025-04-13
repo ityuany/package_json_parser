@@ -2,6 +2,13 @@
 edition = "2024"
 name    = "package_json_parser"
 version = "0.0.1"
+include     = ["src/**/*.rs", "Cargo.toml", "LICENSE", "README.md"]
+license     = "MIT"
+keywords    = ["package", "json", "parser"]
+authors     = ["ityuany <519495771@qq.com>"]
+description = "A parser for package.json"
+repository  = "https://github.com/ityuany/package_json_parser"
+categories  = ["development"]
 
 [dependencies]
 lazy-regex  = "3.4.1"
