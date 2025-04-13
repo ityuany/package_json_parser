@@ -10,15 +10,19 @@ pub use def::publish_config::*;
 pub use def::r#type::*;
 pub use def::repository::*;
 pub use def::version::*;
+pub use err::*;
 pub use rustc_hash::FxHashMap;
 pub use serde::{Deserialize, Serialize};
 pub use serde_valid::Validate;
+use std::collections::HashMap;
+use std::path::Path;
 use std::{
     fs::File,
     io::{BufReader, Error},
 };
 
 mod def;
+mod err;
 mod ext;
 mod validator;
 
@@ -141,10 +145,33 @@ pub struct PackageJsonParser {
 }
 
 impl PackageJsonParser {
-    pub fn parse(path: &str) -> Result<Self, Error> {
+    pub fn parse<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
         let package_json_parser = serde_json::from_reader(reader)?;
         Ok(package_json_parser)
+    }
+}
+
+impl PackageJsonParser {
+    pub fn bin_to_hash_map(&self) -> Result<HashMap<String, String>, ErrorKind> {
+        let bin = self.bin.as_ref().unwrap();
+        let bin = match bin {
+            Bin::String(v) => {
+                let mut map = HashMap::default();
+                let name = self
+                    .name
+                    .as_ref()
+                    .map(|name| name.0.split("/").last())
+                    .flatten()
+                    .ok_or(ErrorKind::NameRequired)?;
+
+                map.insert(name.to_string(), v.to_string());
+                map
+            }
+            Bin::Object(o) => o.to_owned(),
+        };
+
+        Ok(bin)
     }
 }
