@@ -8,7 +8,7 @@ keywords    = ["package", "json", "parser"]
 authors     = ["ityuany <519495771@qq.com>"]
 description = "A parser for package.json"
 repository  = "https://github.com/ityuany/package_json_parser"
-categories  = ["development"]
+categories  = ["parser-implementations", "development-tools", "json"]
 
 [dependencies]
 lazy-regex  = "3.4.1"
