@@ -15,6 +15,7 @@ pub use rustc_hash::FxHashMap;
 pub use serde::{Deserialize, Serialize};
 pub use serde_valid::Validate;
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::Path;
 use std::{
   fs::File,
@@ -142,13 +143,19 @@ pub struct PackageJsonParser {
 
   #[serde(rename = "peerDependencies", skip_serializing_if = "Option::is_none")]
   pub peer_dependencies: Option<FxHashMap<String, String>>,
+
+  #[serde(skip)]
+  pub _raw: Option<String>,
 }
 
 impl PackageJsonParser {
   pub fn parse<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
     let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let package_json_parser = serde_json::from_reader(reader)?;
+    let mut reader = BufReader::new(file);
+    let mut content = String::new();
+    reader.read_to_string(&mut content)?;
+    let mut package_json_parser: PackageJsonParser = serde_json::from_str(&content)?;
+    package_json_parser._raw = Some(content);
     Ok(package_json_parser)
   }
 }
