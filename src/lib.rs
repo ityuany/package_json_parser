@@ -17,6 +17,7 @@ pub use serde_valid::Validate;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
+use std::path::PathBuf;
 use std::{
   fs::File,
   io::{BufReader, Error},
@@ -145,17 +146,21 @@ pub struct PackageJsonParser {
   pub peer_dependencies: Option<FxHashMap<String, String>>,
 
   #[serde(skip)]
-  pub _raw: Option<String>,
+  pub __raw_source: Option<String>,
+
+  #[serde(skip)]
+  pub __raw_path: Option<PathBuf>,
 }
 
 impl PackageJsonParser {
   pub fn parse<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-    let file = File::open(path)?;
+    let file = File::open(path.as_ref())?;
     let mut reader = BufReader::new(file);
     let mut content = String::new();
     reader.read_to_string(&mut content)?;
     let mut package_json_parser: PackageJsonParser = serde_json::from_str(&content)?;
-    package_json_parser._raw = Some(content);
+    package_json_parser.__raw_source = Some(content);
+    package_json_parser.__raw_path = Some(path.as_ref().to_path_buf());
     Ok(package_json_parser)
   }
 }
