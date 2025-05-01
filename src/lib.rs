@@ -17,7 +17,6 @@ pub use serde_valid::Validate;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
-use std::path::PathBuf;
 use std::{
   fs::File,
   io::{BufReader, Error},
