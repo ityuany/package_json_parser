@@ -149,7 +149,7 @@ pub struct PackageJsonParser {
   pub __raw_source: Option<String>,
 
   #[serde(skip)]
-  pub __raw_path: Option<PathBuf>,
+  pub __raw_path: Option<String>,
 }
 
 impl PackageJsonParser {
@@ -160,7 +160,7 @@ impl PackageJsonParser {
     reader.read_to_string(&mut content)?;
     let mut package_json_parser: PackageJsonParser = serde_json::from_str(&content)?;
     package_json_parser.__raw_source = Some(content);
-    package_json_parser.__raw_path = Some(path.as_ref().to_path_buf());
+    package_json_parser.__raw_path = Some(path.as_ref().to_string_lossy().to_string());
     Ok(package_json_parser)
   }
 }
