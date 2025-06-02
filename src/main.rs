@@ -1,4 +1,6 @@
+use jsonc_parser::common::Ranged;
 use miette::{Diagnostic, NamedSource, Result, SourceSpan};
+use serde::de::Error;
 use serde_valid::validation::Errors as ValidationErrors;
 use std::{
   fmt,
@@ -90,7 +92,7 @@ pub struct PackageJsonParserDemo {
   pub version: String,
   pub description: String,
   pub main: String,
-  pub private: bool,
+  pub private: String,
 
   #[serde(skip_serializing_if = "Option::is_none")]
   pub author: Option<package_json_parser::Person>,
@@ -164,7 +166,68 @@ fn main() -> Result<()> {
     )
   }))?;
 
-  PackageJsonParserDemo::parse("/Users/ityuany/GitRepository/csp-new/package.json")?;
+  // PackageJsonParserDemo::parse("/Users/ityuany/GitRepository/csp-new/package.json")?;
+
+  h()?;
+
+  Ok(())
+}
+
+fn h() -> Result<()> {
+  let content = fs::read_to_string("/Users/ityuany/GitRepository/csp-new/package.json").unwrap();
+
+  let parse_result = jsonc_parser::parse_to_ast(
+    &content,
+    &jsonc_parser::CollectOptions {
+      comments: jsonc_parser::CommentCollectionStrategy::Separate, // include comments in result
+      tokens: true,                                                // include tokens in result
+    },
+    &Default::default(),
+  )
+  .unwrap();
+
+  // if let Some(tokens) = parse_result.tokens {
+  //   for token in tokens {
+  //     println!("token: {:?}", token.token);
+  //   }
+  // }
+
+  let root = parse_result.value.unwrap();
+
+  let root = root.as_object().unwrap();
+
+  for k in root.properties.iter() {
+    if k.name.as_str() == "private" {
+      println!("key: {} {:?}", k.name.as_str(), k.name.range());
+
+      if let Some(value) = k.value.as_boolean_lit() {
+        println!("value: {} {:?}", value.value, value.range());
+        let name_source = NamedSource::new(
+          "/Users/ityuany/GitRepository/csp-new/package.json",
+          content.clone(),
+        );
+
+        let range = value.range();
+
+        let offset = range.start;
+        let len = range.end - range.start;
+
+        println!("offset: {} , len: {}", offset, len);
+
+        let span = SourceSpan::from(offset..range.end);
+
+        let d = ErrorKind::JsonParseError {
+          src: name_source,
+          span,
+          label_text: "private must be a boolean".to_string(),
+          source: serde_json::Error::custom("private must be a boolean"),
+          advice: Some("Please check the JSON syntax".to_string()),
+        };
+
+        return Err(miette::miette!(d));
+      }
+    }
+  }
 
   Ok(())
 }
