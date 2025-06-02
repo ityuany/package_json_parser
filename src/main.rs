@@ -42,10 +42,10 @@ pub enum ErrorKind {
     #[source_code]
     src: NamedSource<String>,
 
-    #[label("{label_text}")]
+    // #[label("{label_text}")]
+    #[label]
     span: SourceSpan,
-    label_text: String,
-
+    // label_text: String,
     #[source]
     source: serde_json::Error,
 
@@ -89,10 +89,10 @@ impl ErrorKind {
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct PackageJsonParserDemo {
   pub name: String,
-  pub version: String,
+  pub version: bool,
   pub description: String,
   pub main: String,
-  pub private: String,
+  pub private: bool,
 
   #[serde(skip_serializing_if = "Option::is_none")]
   pub author: Option<package_json_parser::Person>,
@@ -135,7 +135,7 @@ impl PackageJsonParserDemo {
         let d = ErrorKind::JsonParseError {
           src: name_source,
           span,
-          label_text: e.to_string(),
+          // label_text: e.to_string(),
           source: e,
           advice: Some("Please check the JSON syntax".to_string()),
         };
@@ -153,6 +153,11 @@ impl PackageJsonParserDemo {
   }
 }
 
+fn parse_err() -> Result<()> {
+  PackageJsonParserDemo::parse("/Users/ityuany/GitRepository/csp-new/package.json")?;
+  Ok(())
+}
+
 fn main() -> Result<()> {
   miette::set_hook(Box::new(|_| {
     Box::new(
@@ -162,13 +167,14 @@ fn main() -> Result<()> {
         .context_lines(10)
         .tab_width(4)
         .break_words(true)
+        .footer("Power by miette".to_string())
         .build(),
     )
   }))?;
 
-  // PackageJsonParserDemo::parse("/Users/ityuany/GitRepository/csp-new/package.json")?;
+  parse_err()?;
 
-  h()?;
+  // h()?;
 
   Ok(())
 }
@@ -219,7 +225,7 @@ fn h() -> Result<()> {
         let d = ErrorKind::JsonParseError {
           src: name_source,
           span,
-          label_text: "private must be a boolean".to_string(),
+          // label_text: "private must be a boolean".to_string(),
           source: serde_json::Error::custom("private must be a boolean"),
           advice: Some("Please check the JSON syntax".to_string()),
         };
