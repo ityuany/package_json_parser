@@ -1,5 +1,5 @@
 use jsonc_parser::common::Ranged;
-use miette::{Diagnostic, NamedSource, Result, SourceSpan};
+// use miette::{Diagnostic, LabeledSpan, NamedSource, Result, SourceSpan};
 use serde::de::Error;
 use serde_valid::validation::Errors as ValidationErrors;
 use std::{
@@ -8,169 +8,181 @@ use std::{
   path::Path,
 };
 
-#[derive(Debug)]
-pub struct ValidationErrorWrapper(pub ValidationErrors);
+// #[derive(Debug)]
+// pub struct ValidationErrorWrapper(pub ValidationErrors);
 
-impl fmt::Display for ValidationErrorWrapper {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    // for (field, errors) in self.0.iter() {
-    //   writeln!(f, "Field '{}': {:?}", field, errors)?;
-    // }
-    Ok(())
-  }
-}
+// impl fmt::Display for ValidationErrorWrapper {
+//   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//     // for (field, errors) in self.0.iter() {
+//     //   writeln!(f, "Field '{}': {:?}", field, errors)?;
+//     // }
+//     Ok(())
+//   }
+// }
 
-#[derive(Debug, thiserror::Error, Diagnostic)]
-pub enum ErrorKind {
-  #[error("name is required")]
-  #[diagnostic(code(package_json::name_required))]
-  NameRequired,
+// #[derive(Debug, thiserror::Error, Diagnostic)]
+// pub enum ErrorKind {
+//   #[error("name is required")]
+//   #[diagnostic(code(package_json::name_required))]
+//   NameRequired,
 
-  #[error("validation failed: {errors}")]
-  #[diagnostic(code(package_json::validation_failed))]
-  ValidationFailed {
-    #[source_code]
-    src: String,
-    #[label("validation errors occurred here")]
-    span: SourceSpan,
-    errors: ValidationErrorWrapper,
-  },
+//   #[error("validation failed: {errors}")]
+//   #[diagnostic(code(package_json::validation_failed))]
+//   ValidationFailed {
+//     #[source_code]
+//     src: String,
+//     #[label("validation errors occurred here")]
+//     span: Option<SourceSpan>,
+//     errors: ValidationErrorWrapper,
+//   },
 
-  #[error("JSON parsing failed")]
-  #[diagnostic(code(package_json::json_parse_failed), url(docsrs))]
-  JsonParseError {
-    #[source_code]
-    src: NamedSource<String>,
+//   #[error("JSON parsing failed")]
+//   #[diagnostic(code(package_json::json_parse_failed), url(docsrs))]
+//   JsonParseError {
+//     #[source_code]
+//     src: NamedSource<String>,
 
-    // #[label("{label_text}")]
-    #[label]
-    span: SourceSpan,
-    // label_text: String,
-    #[source]
-    source: serde_json::Error,
+//     // #[label("{label_text}")]
+//     #[label]
+//     span: Option<SourceSpan>,
 
-    #[help]
-    advice: Option<String>,
-  },
+//     #[label(collection, "related to this")]
+//     other_spans: Vec<LabeledSpan>,
+//     // label_text: String,
+//     #[source]
+//     source: Option<serde_json::Error>,
 
-  #[error("IO error")]
-  #[diagnostic(code(package_json::io_error))]
-  IoError(#[from] std::io::Error),
-}
+//     #[help]
+//     advice: Option<String>,
+//   },
 
-impl ErrorKind {
-  pub fn validation_failed(src: String, errors: ValidationErrors) -> Self {
-    let span = SourceSpan::from(0..src.len());
-    Self::ValidationFailed {
-      src,
-      span,
-      errors: ValidationErrorWrapper(errors),
-    }
-  }
+//   #[error("IO error")]
+//   #[diagnostic(code(package_json::io_error))]
+//   IoError(#[from] std::io::Error),
+// }
 
-  // pub fn json_parse_error(src: String, source: serde_json::Error) -> Self {
-  //   let span = match (source.line(), source.column()) {
-  //     (Some(line), Some(column)) => {
-  //       let offset = src
-  //         .lines()
-  //         .take(line.saturating_sub(1))
-  //         .map(|l| l.len() + 1)
-  //         .sum::<usize>()
-  //         + column;
-  //       SourceSpan::from(offset..offset + 1)
-  //     }
-  //     _ => SourceSpan::from(0..src.len()),
-  //   };
+// impl ErrorKind {
+//   // pub fn validation_failed(src: String, errors: ValidationErrors) -> Self {
+//   //   let span = SourceSpan::from(0..src.len());
+//   //   Self::ValidationFailed {
+//   //     src,
+//   //     // span,
+//   //     errors: ValidationErrorWrapper(errors),
+//   //   }
+//   // }
 
-  //   Self::JsonParseError { src, span, source }
-  // }
-}
+//   // pub fn json_parse_error(src: String, source: serde_json::Error) -> Self {
+//   //   let span = match (source.line(), source.column()) {
+//   //     (Some(line), Some(column)) => {
+//   //       let offset = src
+//   //         .lines()
+//   //         .take(line.saturating_sub(1))
+//   //         .map(|l| l.len() + 1)
+//   //         .sum::<usize>()
+//   //         + column;
+//   //       SourceSpan::from(offset..offset + 1)
+//   //     }
+//   //     _ => SourceSpan::from(0..src.len()),
+//   //   };
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub struct PackageJsonParserDemo {
-  pub name: String,
-  pub version: bool,
-  pub description: String,
-  pub main: String,
-  pub private: bool,
+//   //   Self::JsonParseError { src, span, source }
+//   // }
+// }
 
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub author: Option<package_json_parser::Person>,
-}
+// #[derive(Debug, serde::Deserialize, serde::Serialize)]
+// pub struct PackageJsonParserDemo {
+//   pub name: String,
+//   pub version: bool,
+//   pub description: String,
+//   pub main: String,
+//   pub private: bool,
 
-impl PackageJsonParserDemo {
-  pub fn parse<P: AsRef<Path>>(path: P) -> Result<()> {
-    let content = fs::read_to_string(path.as_ref())
-      .map_err(ErrorKind::IoError)
-      .map_err(|e| miette::miette!(e))?;
+//   #[serde(skip_serializing_if = "Option::is_none")]
+//   pub author: Option<package_json_parser::Person>,
+// }
 
-    let package_json_parser: PackageJsonParserDemo =
-      serde_json::from_str(&content).map_err(|e| {
-        let line = e.line();
-        let column = e.column();
-        eprintln!("e: {:?}", e);
+// impl PackageJsonParserDemo {
+//   pub fn parse<P: AsRef<Path>>(path: P) -> Result<()> {
+//     let content = fs::read_to_string(path.as_ref())
+//       .map_err(ErrorKind::IoError)
+//       .map_err(|e| miette::miette!(e))?;
 
-        println!("line: {}, column: {}", line, column);
+//     let package_json_parser: PackageJsonParserDemo =
+//       serde_json::from_str(&content).map_err(|e| {
+//         let line = e.line();
+//         let column = e.column();
+//         eprintln!("e: {:?}", e);
 
-        let lines_before = content.lines().take(line.saturating_sub(1));
-        let offset = lines_before.map(|l| l.len() + 1).sum::<usize>();
+//         println!("line: {}, column: {}", line, column);
 
-        let len = content
-          .lines()
-          .nth(line.saturating_sub(1))
-          .unwrap_or("")
-          .len();
+//         let lines_before = content.lines().take(line.saturating_sub(1));
+//         let offset = lines_before.map(|l| l.len() + 1).sum::<usize>();
 
-        println!(
-          "offset: {}, len: {}, classify: {}",
-          offset,
-          len,
-          e.to_string(),
-        );
+//         let len = content
+//           .lines()
+//           .nth(line.saturating_sub(1))
+//           .unwrap_or("")
+//           .len();
 
-        let span = SourceSpan::from(offset..offset + len);
+//         println!(
+//           "offset: {}, len: {}, classify: {}",
+//           offset,
+//           len,
+//           e.to_string(),
+//         );
 
-        let name_source = NamedSource::new(path.as_ref().to_str().unwrap(), content.clone());
+//         let span = SourceSpan::from(0..content.len());
 
-        let d = ErrorKind::JsonParseError {
-          src: name_source,
-          span,
-          // label_text: e.to_string(),
-          source: e,
-          advice: Some("Please check the JSON syntax".to_string()),
-        };
+//         let name_source = NamedSource::new(path.as_ref().to_str().unwrap(), content.clone());
 
-        miette::miette!(d)
-      })?;
+//         let d = ErrorKind::JsonParseError {
+//           src: name_source,
+//           span: Some(span),
+//           // span: None,
+//           other_spans: vec![LabeledSpan::new(
+//             Some("here".to_string()),
+//             // None,
+//             offset,
+//             len,
+//           )],
+//           // label_text: e.to_string(),
+//           source: Some(e),
+//           advice: Some("Please check the JSON syntax".to_string()),
+//         };
 
-    println!("package_json_parser: {:?}", package_json_parser);
+//         miette::miette!(d)
+//       })?;
 
-    // let mut reader = BufReader::new(file);
-    // let mut content = String::new();
-    // reader.read_to_string(&mut content)?;
-    // let mut package_json_parser: PackageJsonParserDemo = serde_json::from_str(&content)?;
-    Ok(())
-  }
-}
+//     println!("package_json_parser: {:?}", package_json_parser);
 
-fn parse_err() -> Result<()> {
-  PackageJsonParserDemo::parse("/Users/ityuany/GitRepository/csp-new/package.json")?;
+//     // let mut reader = BufReader::new(file);
+//     // let mut content = String::new();
+//     // reader.read_to_string(&mut content)?;
+//     // let mut package_json_parser: PackageJsonParserDemo = serde_json::from_str(&content)?;
+//     Ok(())
+//   }
+// }
+
+fn parse_err() -> package_json_parser::Result<()> {
+  package_json_parser::PackageJsonParser::parse(
+    "/Users/ityuany/GitRepository/csp-new/package.json",
+  )?;
   Ok(())
 }
 
-fn main() -> Result<()> {
-  miette::set_hook(Box::new(|_| {
-    Box::new(
-      miette::MietteHandlerOpts::new()
-        .terminal_links(true)
-        .unicode(true)
-        .context_lines(10)
-        .tab_width(4)
-        .break_words(true)
-        .footer("Power by miette".to_string())
-        .build(),
-    )
-  }))?;
+fn main() -> package_json_parser::Result<()> {
+  // miette::set_hook(Box::new(|_| {
+  //   Box::new(
+  //     miette::MietteHandlerOpts::new()
+  //       .terminal_links(true)
+  //       .unicode(true)
+  //       .context_lines(10)
+  //       .tab_width(4)
+  //       .break_words(true)
+  //       .footer("Power by miette".to_string())
+  //       .build(),
+  //   )
+  // }))?;
 
   parse_err()?;
 
@@ -179,61 +191,63 @@ fn main() -> Result<()> {
   Ok(())
 }
 
-fn h() -> Result<()> {
-  let content = fs::read_to_string("/Users/ityuany/GitRepository/csp-new/package.json").unwrap();
+// fn h() -> Result<()> {
+//   let content = fs::read_to_string("/Users/ityuany/GitRepository/csp-new/package.json").unwrap();
 
-  let parse_result = jsonc_parser::parse_to_ast(
-    &content,
-    &jsonc_parser::CollectOptions {
-      comments: jsonc_parser::CommentCollectionStrategy::Separate, // include comments in result
-      tokens: true,                                                // include tokens in result
-    },
-    &Default::default(),
-  )
-  .unwrap();
+//   let parse_result = jsonc_parser::parse_to_ast(
+//     &content,
+//     &jsonc_parser::CollectOptions {
+//       comments: jsonc_parser::CommentCollectionStrategy::Separate, // include comments in result
+//       tokens: true,                                                // include tokens in result
+//     },
+//     &Default::default(),
+//   )
+//   .unwrap();
 
-  // if let Some(tokens) = parse_result.tokens {
-  //   for token in tokens {
-  //     println!("token: {:?}", token.token);
-  //   }
-  // }
+//   // if let Some(tokens) = parse_result.tokens {
+//   //   for token in tokens {
+//   //     println!("token: {:?}", token.token);
+//   //   }
+//   // }
 
-  let root = parse_result.value.unwrap();
+//   let root = parse_result.value.unwrap();
 
-  let root = root.as_object().unwrap();
+//   let root = root.as_object().unwrap();
 
-  for k in root.properties.iter() {
-    if k.name.as_str() == "private" {
-      println!("key: {} {:?}", k.name.as_str(), k.name.range());
+//   for k in root.properties.iter() {
+//     if k.name.as_str() == "private" {
+//       println!("key: {} {:?}", k.name.as_str(), k.name.range());
 
-      if let Some(value) = k.value.as_boolean_lit() {
-        println!("value: {} {:?}", value.value, value.range());
-        let name_source = NamedSource::new(
-          "/Users/ityuany/GitRepository/csp-new/package.json",
-          content.clone(),
-        );
+//       if let Some(value) = k.value.as_boolean_lit() {
+//         println!("value: {} {:?}", value.value, value.range());
+//         let name_source = NamedSource::new(
+//           "/Users/ityuany/GitRepository/csp-new/package.json",
+//           content.clone(),
+//         );
 
-        let range = value.range();
+//         let range = value.range();
 
-        let offset = range.start;
-        let len = range.end - range.start;
+//         let offset = range.start;
+//         let len = range.end - range.start;
 
-        println!("offset: {} , len: {}", offset, len);
+//         println!("offset: {} , len: {}", offset, len);
 
-        let span = SourceSpan::from(offset..range.end);
+//         let span = SourceSpan::from(offset..range.end);
 
-        let d = ErrorKind::JsonParseError {
-          src: name_source,
-          span,
-          // label_text: "private must be a boolean".to_string(),
-          source: serde_json::Error::custom("private must be a boolean"),
-          advice: Some("Please check the JSON syntax".to_string()),
-        };
+//         let d = ErrorKind::JsonParseError {
+//           src: name_source,
+//           // span: Some(span),
+//           span: None,
+//           other_spans: vec![],
+//           // label_text: "private must be a boolean".to_string(),
+//           source: None,
+//           advice: Some("Please check the JSON syntax".to_string()),
+//         };
 
-        return Err(miette::miette!(d));
-      }
-    }
-  }
+//         return Err(miette::miette!(d));
+//       }
+//     }
+//   }
 
-  Ok(())
-}
+//   Ok(())
+// }

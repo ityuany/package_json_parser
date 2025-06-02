@@ -10,22 +10,35 @@ pub use def::publish_config::*;
 pub use def::repository::*;
 pub use def::r#type::*;
 pub use def::version::*;
-pub use err::*;
+
 pub use rustc_hash::FxHashMap;
 pub use serde::{Deserialize, Serialize};
 pub use serde_valid::Validate;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
-use std::{
-  fs::File,
-  io::{BufReader, Error},
-};
+use std::{fs::File, io::BufReader};
+
+#[cfg(feature = "fancy")]
+pub use miette::{LabeledSpan, NamedSource, SourceSpan};
+
+#[cfg(not(feature = "fancy"))]
+pub use err::*;
+#[cfg(feature = "fancy")]
+mod err_fancy;
+#[cfg(feature = "fancy")]
+pub use err_fancy::*;
 
 mod def;
 mod err;
 mod ext;
 mod validator;
+
+#[cfg(feature = "fancy")]
+pub type Result<T> = miette::Result<T>;
+
+#[cfg(not(feature = "fancy"))]
+pub type Result<T> = std::result::Result<T, ErrorKind>;
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct PackageJsonParser {
@@ -152,12 +165,51 @@ pub struct PackageJsonParser {
 }
 
 impl PackageJsonParser {
-  pub fn parse<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-    let file = File::open(path.as_ref())?;
+  pub fn parse<P: AsRef<Path>>(path: P) -> Result<Self> {
+    let file = File::open(path.as_ref()).map_err(ErrorKind::IoError)?;
     let mut reader = BufReader::new(file);
     let mut content = String::new();
-    reader.read_to_string(&mut content)?;
-    let mut package_json_parser: PackageJsonParser = serde_json::from_str(&content)?;
+    reader
+      .read_to_string(&mut content)
+      .map_err(ErrorKind::IoError)?;
+    let mut package_json_parser: PackageJsonParser =
+      serde_json::from_str(&content).map_err(|e| {
+        #[cfg(feature = "fancy")]
+        {
+          let line = e.line();
+          let _col = e.column();
+
+          let offset = content
+            .lines()
+            .take(line.saturating_sub(1))
+            .map(|l| l.len() + 1)
+            .sum::<usize>();
+
+          let len = content
+            .lines()
+            .nth(line.saturating_sub(1))
+            .unwrap_or("")
+            .len();
+
+          let primary_span = SourceSpan::from(0..content.len());
+
+          let name_source = NamedSource::new(path.as_ref().to_str().unwrap(), content.clone());
+
+          let err = ErrorKind::JsonParseError {
+            src: name_source,
+            primary_span: Some(primary_span),
+            other_spans: vec![LabeledSpan::new(Some("here".to_string()), offset, len)],
+            source: Some(e),
+            advice: Some("Please check the JSON syntax".to_string()),
+          };
+          miette::miette!(err)
+        }
+        #[cfg(not(feature = "fancy"))]
+        {
+          let err = ErrorKind::JsonParseError { source: Some(e) };
+          err
+        }
+      })?;
     package_json_parser.__raw_source = Some(content);
     package_json_parser.__raw_path = Some(path.as_ref().to_string_lossy().to_string());
     Ok(package_json_parser)
@@ -165,7 +217,7 @@ impl PackageJsonParser {
 }
 
 impl PackageJsonParser {
-  pub fn bin_to_hash_map(&self) -> Result<HashMap<String, String>, ErrorKind> {
+  pub fn bin_to_hash_map(&self) -> Result<HashMap<String, String>> {
     let bin = self.bin.as_ref().unwrap();
     let bin = match bin {
       Bin::String(v) => {
@@ -174,7 +226,16 @@ impl PackageJsonParser {
           .name
           .as_ref()
           .and_then(|name| name.0.split("/").last())
-          .ok_or(ErrorKind::NameRequired)?;
+          .ok_or({
+            #[cfg(feature = "fancy")]
+            {
+              miette::miette!(ErrorKind::NameRequired)
+            }
+            #[cfg(not(feature = "fancy"))]
+            {
+              ErrorKind::NameRequired
+            }
+          })?;
 
         map.insert(name.to_string(), v.to_string());
         map
