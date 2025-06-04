@@ -19,9 +19,8 @@ use std::io::Read;
 use std::path::Path;
 use std::{fs::File, io::BufReader};
 
+pub use crate::err::ErrorKind;
 pub use miette::{LabeledSpan, NamedSource, Result, SourceSpan};
-
-use crate::err::ErrorKind;
 
 mod def;
 mod err;

@@ -39,7 +39,8 @@ fn should_fail_when_bin_is_invalid() {
     let bin = package_json_parser.bin_to_hash_map();
     assert!(bin.is_err());
     if let Err(e) = bin {
-      assert!(matches!(e, ErrorKind::NameRequired));
+      let error_kind = e.downcast_ref::<ErrorKind>().unwrap();
+      assert!(matches!(error_kind, ErrorKind::NameRequired));
     }
   }
 }
