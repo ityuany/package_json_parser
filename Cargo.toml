@@ -10,9 +10,7 @@ description = "A parser for package.json"
 repository  = "https://github.com/ityuany/package_json_parser"
 categories  = ["parser-implementations", "development-tools"]
 
-[features]
-default = []
-fancy = ["dep:miette"]
+
 
 [dependencies]
 lazy-regex  = "3.4.1"
@@ -23,5 +21,5 @@ serde_valid = "1.0.5"
 thiserror   = "2.0.12"
 
 
-miette = { version = "7.6.0", features = ["fancy"],optional = true }
+miette = { version = "7.6.0", features = ["fancy"] }
 jsonc-parser = "0.26.2"
