@@ -1,15 +1,4 @@
-pub use def::bin::*;
-pub use def::bugs::*;
-pub use def::directories::*;
-pub use def::engines::*;
-pub use def::license::*;
-pub use def::name::*;
-pub use def::package_manager::*;
-pub use def::person::*;
-pub use def::publish_config::*;
-pub use def::r#type::*;
-pub use def::repository::*;
-pub use def::version::*;
+pub use def::*;
 
 pub use rustc_hash::FxHashMap;
 pub use serde::{Deserialize, Serialize};
@@ -22,47 +11,41 @@ use std::{fs::File, io::BufReader};
 pub use crate::err::ErrorKind;
 pub use miette::{LabeledSpan, NamedSource, Result, SourceSpan};
 
+mod case;
 mod def;
 mod err;
 mod ext;
 mod validator;
 
-#[derive(Debug, Serialize, Deserialize, Validate)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PackageJsonParser {
-  #[validate]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub name: Option<Name>,
 
-  #[validate]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub version: Option<Version>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub description: Option<String>,
+  pub description: Option<Description>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub keywords: Option<String>,
+  pub keywords: Option<Keywords>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub homepage: Option<String>,
+  pub homepage: Option<HomePage>,
 
-  #[validate]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub bugs: Option<Bugs>,
 
-  #[validate]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub license: Option<License>,
 
-  #[validate]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub author: Option<Person>,
 
-  #[validate]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub contributors: Option<Vec<Person>>,
 
-  #[validate]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub maintainers: Option<Vec<Person>>,
 
@@ -72,7 +55,6 @@ pub struct PackageJsonParser {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub main: Option<String>,
 
-  #[validate]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub r#type: Option<Type>,
 
@@ -82,11 +64,9 @@ pub struct PackageJsonParser {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub typings: Option<String>,
 
-  #[validate]
   #[serde(rename = "packageManager", skip_serializing_if = "Option::is_none")]
   pub package_manager: Option<PackageManager>,
 
-  #[validate]
   #[serde(rename = "publishConfig", skip_serializing_if = "Option::is_none")]
   pub publish_config: Option<PublishConfig>,
   // pub browser: Option<String>,
@@ -99,7 +79,6 @@ pub struct PackageJsonParser {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub directories: Option<Directories>,
 
-  #[validate]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub repository: Option<RepositoryOrString>,
 
@@ -152,6 +131,17 @@ pub struct PackageJsonParser {
 }
 
 impl PackageJsonParser {
+  // pub fn v(&self) {
+  //   if let Some(source) = self.__raw_source.as_ref() {
+  //     let parse_result =
+  //       parse_to_ast(source, &CollectOptions::default(), &ParseOptions::default()).unwrap();
+
+  //     if let Some(name) = self.name.as_ref() {
+  //       name.validate(&parse_result);
+  //     }
+  //   }
+  // }
+
   pub fn parse<P: AsRef<Path>>(path: P) -> Result<Self> {
     let file = File::open(path.as_ref()).map_err(ErrorKind::IoError)?;
     let mut reader = BufReader::new(file);
