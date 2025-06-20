@@ -1,48 +1,33 @@
-use std::ops::{Deref, DerefMut};
-
-use jsonc_parser::{ParseResult, common::Ranged};
+use derive_more::{Deref, DerefMut};
+use jsonc_parser::{ast::ObjectProp, common::Ranged};
 use miette::{LabeledSpan, MietteDiagnostic, Severity};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+use crate::ext::Validator;
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Deref, DerefMut)]
 pub struct Version(pub String);
 
-impl Deref for Version {
-  type Target = String;
+impl Validator for Version {
+  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
+    let mut diagnostics = vec![];
 
-  fn deref(&self) -> &Self::Target {
-    &self.0
-  }
-}
-
-impl DerefMut for Version {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
-  }
-}
-
-impl Version {
-  pub fn validate(&self, parse_result: &ParseResult) -> Option<MietteDiagnostic> {
     let regex = lazy_regex::regex_is_match!(
       r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$",
       &self
     );
 
     if regex {
-      return None;
+      return diagnostics;
     }
 
-    let range = parse_result
-      .value
-      .as_ref()
-      .and_then(|v| v.as_object())
-      .and_then(|obj| obj.get("version"))
+    let range = prop
       .and_then(|prop| prop.value.as_string_lit())
       .map(|value| value.range())
       .and_then(|range| Some(range.start..range.end));
 
     let Some(range) = range else {
-      return None;
+      return diagnostics;
     };
 
     let label = LabeledSpan::at(range, "here".to_string());
@@ -52,54 +37,49 @@ impl Version {
       .with_severity(Severity::Error)
       .with_code("E0001");
 
-    return Some(diagnostic);
+    diagnostics.push(diagnostic);
+    diagnostics
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::case::case;
-
-  use super::*;
+  use crate::{case::t, ext::Validator};
 
   #[test]
   fn should_pass_validate_version() {
-    let json = r#"
-    {
-      "version": "1.0.0"
-    }
-    "#;
-
-    let vs = vec![
-      Version("1.0.0".to_string()),
-      Version("1.0.0-alpha.1".to_string()),
-      Version("1.0.0+build.1".to_string()),
-      Version("1.0.0-alpha.1+build.1".to_string()),
+    let jsones = [
+      r#"{"version": "1.0.0"}"#,
+      r#"{"version": "1.0.0-alpha.1"}"#,
+      r#"{"version": "1.0.0+build.1"}"#,
+      r#"{"version": "1.0.0-alpha.1+build.1"}"#,
     ];
 
-    let parse_result = case(json).unwrap();
-
-    for v in vs {
-      let res = v.validate(&parse_result);
-      assert!(res.is_none());
-    }
+    t(&jsones, |parser, parse_result| {
+      let version = parse_result
+        .value
+        .as_ref()
+        .and_then(|v| v.as_object())
+        .and_then(|obj| obj.get("version"));
+      let res = parser.version.unwrap().validate(version);
+      assert!(res.len() == 0);
+      res
+    });
   }
 
   #[test]
   fn should_fail_validate_version() {
-    let json = r#"
-    {
-      "version": "1.0.0-alpha.1+build.1"
-    }
-    "#;
+    let jsones = [r#"{"version": "hello"}"#];
 
-    let parse_result = case(json).unwrap();
-
-    let vs = vec![Version("hello".to_string())];
-
-    for v in vs {
-      let res = v.validate(&parse_result);
-      assert!(res.is_some());
-    }
+    t(&jsones, |parser, parse_result| {
+      let version = parse_result
+        .value
+        .as_ref()
+        .and_then(|v| v.as_object())
+        .and_then(|obj| obj.get("version"));
+      let res = parser.version.unwrap().validate(version);
+      assert!(res.len() == 1);
+      res
+    });
   }
 }

@@ -1,7 +1,10 @@
+use jsonc_parser::ast::ObjectProp;
+use miette::MietteDiagnostic;
 use serde::{Deserialize, Serialize};
-use serde_valid::Validate;
 
-#[derive(Debug, Serialize, Deserialize, Validate)]
+use crate::ext::Validator;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Directories {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub bin: Option<String>,
@@ -17,21 +20,8 @@ pub struct Directories {
   pub test: Option<String>,
 }
 
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn should_pass_validate_directories() {
-    let raw = r#"{"bin": "bin", "lib": "lib", "man": "man", "doc": "doc", "example": "example", "test": "test"}"#;
-    let directories: Directories = serde_json::from_str(raw).unwrap();
-    assert!(directories.validate().is_ok());
-  }
-
-  #[test]
-  fn should_pass_deserialize_directories() {
-    let raw = r#"{"bin": "bin", "lib": "lib", "man": "man"}"#;
-    let directories: Directories = serde_json::from_str(raw).unwrap();
-    assert!(directories.validate().is_ok());
+impl Validator for Directories {
+  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
+    vec![]
   }
 }

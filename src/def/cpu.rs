@@ -5,10 +5,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::ext::Validator;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Deref, DerefMut)]
-pub struct Description(pub String);
+#[derive(Debug, Serialize, Deserialize, Clone, Deref, DerefMut)]
+pub struct Cpu(pub Vec<String>);
 
-impl Validator for Description {
+impl Cpu {
+  pub fn validate(&self, _cpu: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
+    vec![]
+  }
+}
+
+impl Validator for Cpu {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
     vec![]
   }

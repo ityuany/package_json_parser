@@ -1,13 +1,14 @@
-use crate::ext::Validator;
 use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
 use miette::MietteDiagnostic;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Deref, DerefMut)]
-pub struct HomePage(pub String);
+use crate::ext::Validator;
 
-impl Validator for HomePage {
+#[derive(Debug, Serialize, Deserialize, Clone, Deref, DerefMut)]
+pub struct Private(pub bool);
+
+impl Validator for Private {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
     vec![]
   }

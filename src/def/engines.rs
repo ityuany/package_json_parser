@@ -1,35 +1,17 @@
 use std::collections::HashMap;
 
+use derive_more::{Deref, DerefMut};
+use jsonc_parser::ast::ObjectProp;
+use miette::MietteDiagnostic;
 use serde::{Deserialize, Serialize};
-use serde_valid::Validate;
 
-#[derive(Debug, Serialize, Deserialize, Validate)]
+use crate::ext::Validator;
+
+#[derive(Debug, Serialize, Deserialize, Clone, Deref, DerefMut)]
 pub struct Engines(HashMap<String, String>);
 
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn should_pass_validate_engines() {
-    let engines = Engines(HashMap::from([(
-      "node".to_string(),
-      ">=10.0.0".to_string(),
-    )]));
-    assert!(engines.validate().is_ok());
-  }
-
-  #[test]
-  fn should_pass_deserialize_engines() {
-    let raw = r#"{"node": ">=10.0.0"}"#;
-    let engines: Engines = serde_json::from_str(raw).unwrap();
-    assert!(engines.validate().is_ok());
-  }
-
-  #[test]
-  fn should_pass_deserialize_engines_with_multiple_engines() {
-    let raw = r#"{"node": ">=10.0.0", "npm": ">=6.0.0"}"#;
-    let engines: Engines = serde_json::from_str(raw).unwrap();
-    assert!(engines.validate().is_ok());
+impl Validator for Engines {
+  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
+    vec![]
   }
 }

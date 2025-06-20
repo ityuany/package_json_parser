@@ -1,14 +1,16 @@
-use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
 use miette::MietteDiagnostic;
 use serde::{Deserialize, Serialize};
 
 use crate::ext::Validator;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Deref, DerefMut)]
-pub struct Description(pub String);
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Readme {
+  pub r#type: String,
+  pub value: String,
+}
 
-impl Validator for Description {
+impl Validator for Readme {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
     vec![]
   }

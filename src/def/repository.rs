@@ -1,7 +1,12 @@
+use jsonc_parser::{ast::ObjectProp, common::Ranged};
+use miette::{LabeledSpan, MietteDiagnostic, Severity};
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 
-#[derive(Debug, Serialize, Deserialize, Validate)]
+use crate::ext::Validator;
+use crate::validator::ValidatorUtil;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Repository {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub r#type: Option<String>,
@@ -13,70 +18,109 @@ pub struct Repository {
   pub directory: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Validate)]
+impl Validator for Repository {
+  fn validate(&self, repos: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
+    let mut diagnostics = vec![];
+
+    if let Some(url) = self.url.as_ref() {
+      if !ValidatorUtil::is_url(url) {
+        let mut labels = vec![];
+        if let Some(range) = repos
+          .and_then(|prop| prop.value.as_object())
+          .and_then(|obj| obj.get("url"))
+          .and_then(|prop| prop.value.as_string_lit())
+          .map(|value| value.range())
+          .and_then(|range| Some(range.start..range.end))
+        {
+          labels.push(LabeledSpan::at(range, "Invalid url"));
+        }
+        let diagnostic = MietteDiagnostic::new("Invalid url".to_string())
+          .with_labels(labels)
+          .with_severity(Severity::Error)
+          .with_help("Please provide a valid url");
+        diagnostics.push(diagnostic);
+      }
+    }
+
+    diagnostics
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate, Clone)]
 #[serde(untagged)]
 pub enum RepositoryOrString {
   Repository(Repository),
   String(String),
 }
 
+impl RepositoryOrString {
+  pub fn validate(&self, repository: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
+    let mut diagnostics = vec![];
+    match self {
+      RepositoryOrString::Repository(repos) => {
+        diagnostics.extend(repos.validate(repository));
+      }
+      RepositoryOrString::String(string) => {
+        if !ValidatorUtil::is_url(string) {
+          let mut labels = vec![];
+          if let Some(range) = repository
+            .and_then(|prop| prop.value.as_string_lit())
+            .map(|value| value.range())
+            .and_then(|range| Some(range.start..range.end))
+          {
+            labels.push(LabeledSpan::at(range, "Invalid url"));
+          }
+          let diagnostic = MietteDiagnostic::new("Invalid url".to_string())
+            .with_labels(labels)
+            .with_severity(Severity::Error)
+            .with_help("Please provide a valid url");
+          diagnostics.push(diagnostic);
+        }
+      }
+    }
+    diagnostics
+  }
+}
+
 #[cfg(test)]
 mod tests {
-  use super::*;
-
-  #[test]
-  fn should_pass_when_repository_is_object() {
-    let raw = r#"{"type": "git", "url": "https://github.com/rust-lang/rust", "directory": "src"}"#;
-    let repository: RepositoryOrString = serde_json::from_str(raw).unwrap();
-
-    assert!(repository.validate().is_ok());
-  }
-
-  #[test]
-  fn should_pass_when_repository_is_string() {
-    let raw = r#""https://github.com/rust-lang/rust""#;
-    let repository: RepositoryOrString = serde_json::from_str(raw).unwrap();
-
-    assert!(repository.validate().is_ok());
-  }
+  use crate::case::t;
 
   #[test]
   fn should_pass_validate_repository() {
-    let repository = Repository {
-      r#type: Some("git".to_string()),
-      url: Some("https://github.com/rust-lang/rust".to_string()),
-      directory: Some("src".to_string()),
-    };
-    let res = repository.validate();
+    let jsones = [
+      r#"{"repository": {"type": "git", "url": "https://github.com/rust-lang/rust", "directory": "src"}}"#,
+      r#"{"repository": "https://github.com/rust-lang/rust"}"#,
+    ];
 
-    assert!(res.is_ok());
-  }
-
-  #[test]
-  fn should_pass_validate_repository_or_string() {
-    let repository = RepositoryOrString::Repository(Repository {
-      r#type: Some("git".to_string()),
-      url: Some("https://github.com/rust-lang/rust".to_string()),
-      directory: Some("src".to_string()),
+    t(&jsones, |parser, parse_result| {
+      let repository = parse_result
+        .value
+        .as_ref()
+        .and_then(|v| v.as_object())
+        .and_then(|v| v.get("repository"));
+      let res = parser.repository.unwrap().validate(repository);
+      assert!(res.is_empty());
+      res
     });
-    let res = repository.validate();
-
-    assert!(res.is_ok());
   }
 
   #[test]
-  fn should_pass_deserialize_repository_or_string() {
-    let raw = r#"{"type": "git", "url": "https://github.com/rust-lang/rust", "directory": "src"}"#;
-    let repository: RepositoryOrString = serde_json::from_str(raw).unwrap();
+  fn should_fail_validate_repository() {
+    let jsones = [
+      r#"{"repository": {"type": "git", "url": "invalid", "directory": "src"}}"#,
+      r#"{"repository": "invalid"}"#,
+    ];
 
-    assert!(repository.validate().is_ok());
-  }
-
-  #[test]
-  fn should_pass_deserialize_repository_or_string_string() {
-    let raw = r#""https://github.com/rust-lang/rust""#;
-    let repository: RepositoryOrString = serde_json::from_str(raw).unwrap();
-
-    assert!(repository.validate().is_ok());
+    t(&jsones, |parser, parse_result| {
+      let repository = parse_result
+        .value
+        .as_ref()
+        .and_then(|v| v.as_object())
+        .and_then(|v| v.get("repository"));
+      let res = parser.repository.unwrap().validate(repository);
+      assert!(!res.is_empty());
+      res
+    });
   }
 }
