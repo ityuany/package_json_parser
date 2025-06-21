@@ -1,5 +1,6 @@
 pub use def::*;
 
+use crate::err::{JsonFileParseError, JsonStrParseError};
 use crate::ext::Validator;
 use jsonc_parser::{CollectOptions, ParseOptions, parse_to_ast};
 pub use rustc_hash::FxHashMap;
@@ -333,7 +334,7 @@ impl PackageJsonParser {
 
         let primary_span = SourceSpan::from(0..content.len());
 
-        let err = ErrorKind::JsonStrParseError {
+        let err = JsonStrParseError {
           src: content.to_string(),
           primary_span: Some(primary_span),
           other_spans: vec![LabeledSpan::new(Some("here".to_string()), offset, len)],
@@ -374,7 +375,7 @@ impl PackageJsonParser {
 
         let name_source = NamedSource::new(path.as_ref().to_str().unwrap(), content.clone());
 
-        let err = ErrorKind::JsonFileParseError {
+        let err = JsonFileParseError {
           src: name_source,
           primary_span: Some(primary_span),
           other_spans: vec![LabeledSpan::new(Some("here".to_string()), offset, len)],
@@ -398,7 +399,7 @@ impl PackageJsonParser {
         let name = self
           .name
           .as_ref()
-          .and_then(|name| name.0.split("/").last())
+          .and_then(|name| name.split("/").last())
           .ok_or(miette::miette!(ErrorKind::NameRequired))?;
 
         map.insert(name.to_string(), v.to_string());

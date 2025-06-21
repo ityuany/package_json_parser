@@ -1,47 +1,44 @@
-use miette::{Diagnostic, LabeledSpan, NamedSource, SourceSpan};
+use std::fmt::Debug;
 
-#[derive(Debug, thiserror::Error, Diagnostic)]
+use miette::{Diagnostic, LabeledSpan, NamedSource, SourceCode, SourceSpan};
+use thiserror::Error;
+
+#[derive(Error, Diagnostic, Debug)]
+#[error("JSON parsing failed")]
+#[diagnostic(code(package_json::json_parse_failed), url(docsrs))]
+pub struct JsonParseError<S>
+where
+  S: SourceCode + Debug,
+{
+  #[source_code]
+  pub src: S,
+
+  #[label]
+  pub primary_span: Option<SourceSpan>,
+
+  #[label(collection, "related to this")]
+  pub other_spans: Vec<LabeledSpan>,
+
+  #[help]
+  pub advice: Option<String>,
+
+  #[source]
+  pub source: Option<serde_json::Error>,
+}
+
+pub type JsonFileParseError = JsonParseError<NamedSource<String>>;
+pub type JsonStrParseError = JsonParseError<String>;
+
+#[derive(Debug, Error, Diagnostic)]
 pub enum ErrorKind {
   #[error("name is required")]
   NameRequired,
 
-  #[error("JSON file parsing failed")]
-  #[diagnostic(code(package_json::json_file_parse_failed), url(docsrs))]
-  JsonFileParseError {
-    #[source_code]
-    src: NamedSource<String>,
+  #[error(transparent)]
+  JsonFileParseError(JsonFileParseError),
 
-    #[label]
-    primary_span: Option<SourceSpan>,
-
-    #[label(collection, "related to this")]
-    other_spans: Vec<LabeledSpan>,
-
-    #[help]
-    advice: Option<String>,
-
-    #[source]
-    source: Option<serde_json::Error>,
-  },
-
-  #[error("JSON str parsing failed")]
-  #[diagnostic(code(package_json::json_str_parse_failed), url(docsrs))]
-  JsonStrParseError {
-    #[source_code]
-    src: String,
-
-    #[label]
-    primary_span: Option<SourceSpan>,
-
-    #[label(collection, "related to this")]
-    other_spans: Vec<LabeledSpan>,
-
-    #[help]
-    advice: Option<String>,
-
-    #[source]
-    source: Option<serde_json::Error>,
-  },
+  #[error(transparent)]
+  JsonStrParseError(JsonStrParseError),
 
   #[error("IO error")]
   #[diagnostic(code(package_json::io_error), url(docsrs))]
