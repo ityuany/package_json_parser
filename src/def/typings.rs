@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::ext::Validator;
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone, Deref, DerefMut)]
-pub struct Typings(pub String);
+pub struct Typings(String);
 
 impl Validator for Typings {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {

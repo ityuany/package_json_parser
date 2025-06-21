@@ -5,7 +5,7 @@ use miette::MietteDiagnostic;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Deref, DerefMut)]
-pub struct HomePage(pub String);
+pub struct HomePage(String);
 
 impl Validator for HomePage {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {

@@ -5,7 +5,7 @@ use miette::{LabeledSpan, MietteDiagnostic, Severity};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Deserialize, Serialize, Clone, Deref, DerefMut)]
-pub struct License(pub String);
+pub struct License(String);
 
 impl Validator for License {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {

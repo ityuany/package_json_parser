@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::ext::Validator;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Deref, DerefMut)]
-pub struct Name(pub String);
+pub struct Name(String);
 
 impl Validator for Name {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {

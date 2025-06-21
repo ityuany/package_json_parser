@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::ext::Validator;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Deref, DerefMut)]
-pub struct EngineStrict(pub bool);
+pub struct EngineStrict(bool);
 
 impl Validator for EngineStrict {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {

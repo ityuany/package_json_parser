@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::ext::Validator;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Deref, DerefMut)]
-pub struct Scripts(pub FxHashMap<String, String>);
+pub struct Scripts(FxHashMap<String, String>);
 
 impl Validator for Scripts {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::ext::Validator;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Eq, Clone, Deref, DerefMut)]
-pub struct PackageManager(pub String);
+pub struct PackageManager(String);
 
 impl Validator for PackageManager {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {

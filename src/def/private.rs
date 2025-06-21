@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::ext::Validator;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Deref, DerefMut)]
-pub struct Private(pub bool);
+pub struct Private(bool);
 
 impl Validator for Private {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {

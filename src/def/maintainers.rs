@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::ext::Validator;
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone, Deref, DerefMut)]
-pub struct Maintainers(pub Vec<Person>);
+pub struct Maintainers(Vec<Person>);
 
 impl Validator for Maintainers {
   fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
