@@ -6,7 +6,6 @@ use crate::ext::Validator;
 use jsonc_parser::{CollectOptions, ParseOptions, parse_to_ast};
 pub use rustc_hash::FxHashMap;
 pub use serde::{Deserialize, Serialize};
-pub use serde_valid::Validate;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
@@ -133,17 +132,6 @@ pub struct PackageJsonParser {
 }
 
 impl PackageJsonParser {
-  // pub fn v(&self) {
-  //   if let Some(source) = self.__raw_source.as_ref() {
-  //     let parse_result =
-  //       parse_to_ast(source, &CollectOptions::default(), &ParseOptions::default()).unwrap();
-
-  //     if let Some(name) = self.name.as_ref() {
-  //       name.validate(&parse_result);
-  //     }
-  //   }
-  // }
-
   fn handle_error(&self, e: miette::Result<()>) -> miette::Result<()> {
     if let Err(e) = e {
       if let Some(path) = self.__raw_path.as_ref() {
@@ -411,6 +399,22 @@ impl PackageJsonParser {
     package_json_parser.__raw_source = Some(content);
     package_json_parser.__raw_path = Some(path.as_ref().to_string_lossy().to_string());
     Ok(package_json_parser)
+  }
+}
+
+impl TryFrom<&Path> for PackageJsonParser {
+  type Error = miette::ErrReport;
+
+  fn try_from(value: &Path) -> Result<Self, Self::Error> {
+    Self::parse(value)
+  }
+}
+
+impl TryFrom<&str> for PackageJsonParser {
+  type Error = miette::ErrReport;
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    Self::parse_str(value)
   }
 }
 
