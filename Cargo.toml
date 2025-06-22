@@ -1,21 +1,22 @@
 [package]
-edition = "2024"
-name    = "package_json_parser"
-version = "0.0.8"
-include     = ["src/**/*.rs", "Cargo.toml", "LICENSE", "README.md"]
-license     = "MIT"
-keywords    = ["package", "json", "parser"]
 authors     = ["ityuany <519495771@qq.com>"]
-description = "A parser for package.json"
-repository  = "https://github.com/ityuany/package_json_parser"
 categories  = ["parser-implementations", "development-tools"]
+description = "A parser for package.json"
+edition     = "2024"
+include     = ["src/**/*.rs", "Cargo.toml", "LICENSE", "README.md"]
+keywords    = ["package", "json", "parser"]
+license     = "MIT"
+name        = "package_json_parser"
+repository  = "https://github.com/ityuany/package_json_parser"
+version     = "0.0.7"
 
 [dependencies]
-rustc-hash  = { version = "2.1.1" }
-serde       = { version = "1.0.215", features = ["derive"] }
-serde_json  = {version = "1.0.105"}
-thiserror   = {version = "2.0.12"}
-miette = { version = "7.6.0", features = ["fancy"] }
-jsonc-parser = {version = "0.26.2"}
-derive_more = {version = "2.0.1", features = ["deref", "deref_mut"]}
-validator = {version = "0.20.0"}
+derive_more  = { version = "2.0.1", features = ["deref", "deref_mut"] }
+jsonc-parser = { version = "0.26.2" }
+lazy-regex   = { version = "3.4.1" }
+miette       = { version = "7.6.0", features = ["fancy"] }
+rustc-hash   = { version = "2.1.1" }
+serde        = { version = "1.0.215", features = ["derive"] }
+serde_json   = { version = "1.0.105" }
+thiserror    = { version = "2.0.12" }
+validator    = { version = "0.20.0" }
