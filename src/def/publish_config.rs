@@ -3,6 +3,7 @@ use std::ops::Range;
 use jsonc_parser::{ast::ObjectProp, common::Ranged};
 use miette::{LabeledSpan, MietteDiagnostic, Severity};
 use serde::{Deserialize, Serialize};
+use validator::ValidateUrl;
 
 use crate::ext::Validator;
 
@@ -87,11 +88,7 @@ impl Validator for PublishConfig {
     }
 
     if let Some(registry) = self.registry.as_ref() {
-      let registry_regex = lazy_regex::regex_is_match!(
-        r"^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)$",
-        registry
-      );
-      if !registry_regex {
+      if !registry.validate_url() {
         let mut labels = vec![];
         if let Some(range) = self.get_publish_config_registry_range(publish_config) {
           labels.push(LabeledSpan::at(range, "Invalid registry"));

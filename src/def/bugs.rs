@@ -1,9 +1,9 @@
+use crate::ext::Validator;
 use jsonc_parser::{ast::ObjectProp, common::Ranged};
 use miette::{LabeledSpan, MietteDiagnostic, Severity};
 use serde::{Deserialize, Serialize};
 use std::{ops::Range, vec};
-
-use crate::ext::Validator;
+use validator::{ValidateEmail, ValidateUrl};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct BugsItem {
@@ -52,11 +52,7 @@ impl Validator for Bugs {
   fn validate(&self, props: Option<&ObjectProp>) -> miette::Result<()> {
     match self {
       Bugs::UrlOrEmail(value) => {
-        let is_url = lazy_regex::regex_is_match!(r"^https?://", value);
-        let is_email =
-          lazy_regex::regex_is_match!(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", value);
-
-        if is_url || is_email {
+        if value.validate_url() || value.validate_email() {
           return Ok(());
         }
 
@@ -76,9 +72,7 @@ impl Validator for Bugs {
       }
       Bugs::BugsItem(bugs_item) => {
         if let Some(url) = bugs_item.url.as_ref() {
-          let is_url = lazy_regex::regex_is_match!(r"^https?://", url);
-
-          if !is_url {
+          if !url.validate_url() {
             let range =
               Self::get_bugs_item_url_range(props).map(|r| LabeledSpan::at(r, "Invalid URL"));
 
@@ -96,10 +90,7 @@ impl Validator for Bugs {
         }
 
         if let Some(email) = bugs_item.email.as_ref() {
-          let is_email =
-            lazy_regex::regex_is_match!(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email);
-
-          if !is_email {
+          if !email.validate_email() {
             let range =
               Self::get_bugs_item_email_range(props).map(|r| LabeledSpan::at(r, "Invalid Email"));
 

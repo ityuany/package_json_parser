@@ -1,9 +1,9 @@
+use crate::ext::Validator;
 use jsonc_parser::{ast::ObjectProp, common::Ranged};
 use miette::{LabeledSpan, MietteDiagnostic, Severity};
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
-
-use crate::ext::Validator;
+use validator::{ValidateEmail, ValidateUrl};
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 #[serde(untagged)]
@@ -95,10 +95,7 @@ impl Validator for Person {
         }
 
         if let Some(email) = person.email.as_ref() {
-          if !lazy_regex::regex_is_match!(
-            r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
-            email
-          ) {
+          if !email.validate_email() {
             let mut diagnostic = MietteDiagnostic::new("Invalid email".to_string())
               .with_help("Please provide a valid email")
               .with_severity(Severity::Error)
@@ -116,7 +113,7 @@ impl Validator for Person {
         }
 
         if let Some(url) = person.url.as_ref() {
-          if !lazy_regex::regex_is_match!(r"^https?://", url) {
+          if !url.validate_url() {
             let mut diagnostic = MietteDiagnostic::new("Invalid URL".to_string())
               .with_help("Please provide a valid URL")
               .with_severity(Severity::Error)

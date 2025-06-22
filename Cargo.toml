@@ -13,12 +13,11 @@ categories  = ["parser-implementations", "development-tools"]
 
 
 [dependencies]
-lazy-regex  = {version = "3.4.1"}
 rustc-hash  = { version = "2.1.1" }
 serde       = { version = "1.0.215", features = ["derive"] }
 serde_json  = "1.0.105"
-serde_valid = "1.0.5"
 thiserror   = "2.0.12"
 miette = { version = "7.6.0", features = ["fancy"] }
 jsonc-parser = "0.26.2"
 derive_more = {version = "2.0.1", features = ["deref", "deref_mut"]}
+validator = {version = "0.20.0"}

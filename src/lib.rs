@@ -1,4 +1,5 @@
 pub use def::*;
+use miette::{MietteDiagnostic, Severity};
 
 use crate::err::{JsonFileParseError, JsonStrParseError};
 use crate::ext::Validator;
@@ -17,7 +18,6 @@ pub use miette::{LabeledSpan, NamedSource, Result, SourceSpan};
 mod def;
 mod err;
 mod ext;
-mod validator;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PackageJsonParser {
@@ -110,20 +110,21 @@ pub struct PackageJsonParser {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub scripts: Option<Scripts>,
 
-  // #[serde(skip_serializing_if = "Option::is_none")]
-  // pub dependencies: Option<FxHashMap<String, String>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub dependencies: Option<Dependencies>,
 
-  // #[serde(rename = "devDependencies", skip_serializing_if = "Option::is_none")]
-  // pub dev_dependencies: Option<FxHashMap<String, String>>,
+  #[serde(rename = "devDependencies", skip_serializing_if = "Option::is_none")]
+  pub dev_dependencies: Option<DevDependencies>,
 
-  // #[serde(
-  //   rename = "optionalDependencies",
-  //   skip_serializing_if = "Option::is_none"
-  // )]
-  // pub optional_dependencies: Option<FxHashMap<String, String>>,
+  #[serde(
+    rename = "optionalDependencies",
+    skip_serializing_if = "Option::is_none"
+  )]
+  pub optional_dependencies: Option<OptionalDependencies>,
 
-  // #[serde(rename = "peerDependencies", skip_serializing_if = "Option::is_none")]
-  // pub peer_dependencies: Option<FxHashMap<String, String>>,
+  #[serde(rename = "peerDependencies", skip_serializing_if = "Option::is_none")]
+  pub peer_dependencies: Option<PeerDependencies>,
+
   #[serde(skip)]
   pub __raw_source: Option<String>,
 
@@ -155,12 +156,17 @@ impl PackageJsonParser {
   }
 
   pub fn validate(&self) -> miette::Result<()> {
-    let parse_result = parse_to_ast(
+    let Ok(parse_result) = parse_to_ast(
       self.__raw_source.as_ref().unwrap(),
       &CollectOptions::default(),
       &ParseOptions::default(),
-    )
-    .unwrap();
+    ) else {
+      let labeled_span = LabeledSpan::new(Some("here".to_string()), 0, 0);
+      let diagnostic = MietteDiagnostic::new("Failed to parse JSON")
+        .with_label(labeled_span)
+        .with_severity(Severity::Error);
+      return Err(miette::miette!(diagnostic));
+    };
 
     let root = parse_result.value.as_ref().and_then(|v| v.as_object());
 
@@ -309,6 +315,26 @@ impl PackageJsonParser {
       self.handle_error(scripts.validate(scripts_json))?;
     }
 
+    if let Some(dependencies) = self.dependencies.as_ref() {
+      let dependencies_json = root.and_then(|obj| obj.get("dependencies"));
+      self.handle_error(dependencies.validate(dependencies_json))?;
+    }
+
+    if let Some(dev_dependencies) = self.dev_dependencies.as_ref() {
+      let dev_dependencies_json = root.and_then(|obj| obj.get("devDependencies"));
+      self.handle_error(dev_dependencies.validate(dev_dependencies_json))?;
+    }
+
+    if let Some(optional_dependencies) = self.optional_dependencies.as_ref() {
+      let optional_dependencies_json = root.and_then(|obj| obj.get("optionalDependencies"));
+      self.handle_error(optional_dependencies.validate(optional_dependencies_json))?;
+    }
+
+    if let Some(peer_dependencies) = self.peer_dependencies.as_ref() {
+      let peer_dependencies_json = root.and_then(|obj| obj.get("peerDependencies"));
+      self.handle_error(peer_dependencies.validate(peer_dependencies_json))?;
+    }
+
     Ok(())
   }
 
@@ -420,7 +446,7 @@ mod tests {
       {
 
         "private": true,
-        "bugs": "http11s://example.com"
+        "bugs": "222https://example.com"
       }"#];
     let j = PackageJsonParser::parse_str(jsones[0]).unwrap();
     let res = j.validate();

@@ -3,10 +3,9 @@ use std::ops::Range;
 use jsonc_parser::{ast::ObjectProp, common::Ranged};
 use miette::{LabeledSpan, MietteDiagnostic, Severity};
 use serde::{Deserialize, Serialize};
-use serde_valid::Validate;
+use validator::ValidateUrl;
 
 use crate::ext::Validator;
-use crate::validator::ValidatorUtil;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Repository {
@@ -34,7 +33,7 @@ impl Repository {
 impl Validator for Repository {
   fn validate(&self, repos: Option<&ObjectProp>) -> miette::Result<()> {
     if let Some(url) = self.url.as_ref() {
-      if !ValidatorUtil::is_url(url) {
+      if !url.validate_url() {
         let mut diagnostic = MietteDiagnostic::new("Invalid url".to_string())
           .with_severity(Severity::Error)
           .with_help("Please provide a valid url")
@@ -52,7 +51,7 @@ impl Validator for Repository {
   }
 }
 
-#[derive(Debug, Serialize, Deserialize, Validate, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum RepositoryOrString {
   Repository(Repository),
@@ -77,7 +76,7 @@ impl RepositoryOrString {
         return repos.validate(repository);
       }
       RepositoryOrString::String(string) => {
-        if !ValidatorUtil::is_url(string) {
+        if !string.validate_url() {
           let mut diagnostic = MietteDiagnostic::new("Invalid url".to_string())
             .with_severity(Severity::Error)
             .with_help("Please provide a valid url")
