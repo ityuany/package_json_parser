@@ -1,8 +1,7 @@
-use std::vec;
-
 use jsonc_parser::{ast::ObjectProp, common::Ranged};
 use miette::{LabeledSpan, MietteDiagnostic, Severity};
 use serde::{Deserialize, Serialize};
+use std::{ops::Range, vec};
 
 use crate::ext::Validator;
 
@@ -22,66 +21,77 @@ pub enum Bugs {
   BugsItem(BugsItem),
 }
 
-impl Validator for Bugs {
-  fn validate(&self, props: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
-    let mut diagnostics = vec![];
+impl Bugs {
+  fn get_bugs_string_lit_range(props: Option<&ObjectProp>) -> Option<Range<usize>> {
+    props
+      .and_then(|v| v.value.as_string_lit())
+      .map(|value| value.range())
+      .map(|range| range.start..range.end)
+  }
 
+  fn get_bugs_item_url_range(props: Option<&ObjectProp>) -> Option<Range<usize>> {
+    props
+      .and_then(|v| v.value.as_object())
+      .and_then(|obj| obj.get("url"))
+      .and_then(|prop| prop.value.as_string_lit())
+      .map(|value| value.range())
+      .map(|range| range.start..range.end)
+  }
+
+  fn get_bugs_item_email_range(props: Option<&ObjectProp>) -> Option<Range<usize>> {
+    props
+      .and_then(|v| v.value.as_object())
+      .and_then(|obj| obj.get("email"))
+      .and_then(|prop| prop.value.as_string_lit())
+      .map(|value| value.range())
+      .map(|range| range.start..range.end)
+  }
+}
+
+impl Validator for Bugs {
+  fn validate(&self, props: Option<&ObjectProp>) -> miette::Result<()> {
     match self {
       Bugs::UrlOrEmail(value) => {
         let is_url = lazy_regex::regex_is_match!(r"^https?://", value);
         let is_email =
           lazy_regex::regex_is_match!(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", value);
 
-        if !is_url && !is_email {
-          let bugs = props.and_then(|v| v.value.as_string_lit());
-
-          let range = bugs
-            .map(|value| value.range())
-            .and_then(|range| Some(range.start..range.end));
-
-          let labels = if let Some(range) = range {
-            vec![LabeledSpan::at(range, "Invalid URL or email")]
-          } else {
-            vec![]
-          };
-
-          let diagnostic = MietteDiagnostic::new("Invalid URL or email".to_string())
-            .with_labels(labels)
-            .with_severity(Severity::Error)
-            .with_help("Please provide a valid URL or email")
-            .with_code("invalid_url_or_email");
-
-          diagnostics.push(diagnostic);
+        if is_url || is_email {
+          return Ok(());
         }
-        diagnostics
+
+        let mut diagnostic = MietteDiagnostic::new("Invalid URL or email".to_string())
+          .with_severity(Severity::Error)
+          .with_help("Please provide a valid URL or email")
+          .with_code("invalid_url_or_email");
+
+        let primary_span = Self::get_bugs_string_lit_range(props)
+          .map(|r| LabeledSpan::at(r, "Invalid URL or email"));
+
+        if let Some(primary_span) = primary_span {
+          diagnostic = diagnostic.with_labels(vec![primary_span]);
+        }
+
+        return Err(miette::miette!(diagnostic));
       }
       Bugs::BugsItem(bugs_item) => {
-        let mut labels = vec![];
-
         if let Some(url) = bugs_item.url.as_ref() {
-          println!("url: {}", url);
-
           let is_url = lazy_regex::regex_is_match!(r"^https?://", url);
 
           if !is_url {
-            let range = props
-              .and_then(|prop| prop.value.as_object())
-              .and_then(|obj| obj.get("url"))
-              .and_then(|prop| prop.value.as_string_lit())
-              .map(|value| value.range())
-              .and_then(|range| Some(range.start..range.end));
+            let range =
+              Self::get_bugs_item_url_range(props).map(|r| LabeledSpan::at(r, "Invalid URL"));
 
-            if let Some(range) = range {
-              labels.push(LabeledSpan::at(range, "Invalid URL"));
+            let mut diagnostic = MietteDiagnostic::new("Invalid URL".to_string())
+              .with_severity(Severity::Error)
+              .with_help("Please provide a valid URL")
+              .with_code("invalid_url");
+
+            if let Some(primary_span) = range {
+              diagnostic = diagnostic.with_labels(vec![primary_span]);
             }
 
-            // let diagnostic = MietteDiagnostic::new("Invalid URL".to_string())
-            //   .with_labels(labels)
-            //   .with_severity(Severity::Error)
-            //   .with_help("Please provide a valid URL")
-            //   .with_code("invalid_url");
-
-            // diagnostics.push(diagnostic);
+            return Err(miette::miette!(diagnostic));
           }
         }
 
@@ -90,45 +100,31 @@ impl Validator for Bugs {
             lazy_regex::regex_is_match!(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email);
 
           if !is_email {
-            let range = props
-              .and_then(|prop| prop.value.as_object())
-              .and_then(|obj| obj.get("email"))
-              .and_then(|prop| prop.value.as_string_lit())
-              .map(|value| value.range())
-              .and_then(|range| Some(range.start..range.end));
+            let range =
+              Self::get_bugs_item_email_range(props).map(|r| LabeledSpan::at(r, "Invalid Email"));
 
-            if let Some(range) = range {
-              labels.push(LabeledSpan::at(range, "Invalid email"));
+            let mut diagnostic = MietteDiagnostic::new("Invalid Email".to_string())
+              .with_severity(Severity::Error)
+              .with_help("Please provide a valid Email")
+              .with_code("invalid_email");
+
+            if let Some(primary_span) = range {
+              diagnostic = diagnostic.with_labels(vec![primary_span]);
             }
 
-            // let diagnostic = MietteDiagnostic::new("Invalid email".to_string())
-            //   .with_labels(labels)
-            //   .with_severity(Severity::Error)
-            //   .with_help("Please provide a valid email")
-            //   .with_code("invalid_email");
-
-            // diagnostics.push(diagnostic);
+            return Err(miette::miette!(diagnostic));
           }
         }
-
-        if !labels.is_empty() {
-          let diagnostic = MietteDiagnostic::new("Invalid URL or email".to_string())
-            .with_labels(labels)
-            .with_severity(Severity::Error)
-            .with_help("Please provide a valid URL or email")
-            .with_code("invalid_url_or_email");
-          diagnostics.push(diagnostic);
-        }
-
-        diagnostics
       }
     }
+
+    Ok(())
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::{case::t, ext::Validator};
+  use crate::PackageJsonParser;
 
   #[test]
   fn should_pass_validate_bugs_item() {
@@ -149,18 +145,11 @@ mod tests {
         "bugs": "test@example.com"
       }"#,
     ];
-
-    t(&jsones, |parser, parse_result| {
-      let bugs = parse_result
-        .value
-        .as_ref()
-        .and_then(|v| v.as_object())
-        .and_then(|obj| obj.get("bugs"));
-
-      let res = parser.bugs.unwrap().validate(bugs);
-      assert!(res.is_empty());
-      res
-    });
+    for json in jsones {
+      let res = PackageJsonParser::parse_str(json).unwrap();
+      let res = res.validate();
+      assert!(res.is_ok());
+    }
   }
 
   #[test]
@@ -171,15 +160,10 @@ mod tests {
       r#"{"bugs": {"url": "invalid", "email": "invalid"}}"#,
     ];
 
-    t(&jsones, |parser, parse_result| {
-      let bugs = parse_result
-        .value
-        .as_ref()
-        .and_then(|v| v.as_object())
-        .and_then(|obj| obj.get("bugs"));
-      let res = parser.bugs.unwrap().validate(bugs);
-      assert!(!res.is_empty());
-      res
-    });
+    for json in jsones {
+      let res = PackageJsonParser::parse_str(json).unwrap();
+      let res = res.validate();
+      assert!(res.is_err());
+    }
   }
 }

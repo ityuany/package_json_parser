@@ -1,4 +1,4 @@
-use package_json_parser::{PackageJsonParser, Person, PersonObject, Validate};
+use package_json_parser::{PackageJsonParser, Person, PersonObject};
 
 #[test]
 fn should_pass_when_author_is_valid() {
@@ -8,7 +8,7 @@ fn should_pass_when_author_is_valid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
@@ -34,7 +34,7 @@ fn should_pass_when_author_object_is_valid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
@@ -65,7 +65,7 @@ fn should_fail_when_author_object_is_invalid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
     assert!(package_json_parser.validate().is_err());

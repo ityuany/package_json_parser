@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use derive_more::{Deref, DerefMut};
 use jsonc_parser::{ast::ObjectProp, common::Ranged};
 use miette::{LabeledSpan, MietteDiagnostic, Severity};
@@ -8,43 +10,45 @@ use crate::ext::Validator;
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Deref, DerefMut)]
 pub struct Version(String);
 
-impl Validator for Version {
-  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
-    let mut diagnostics = vec![];
+impl Version {
+  fn get_version_range(&self, prop: Option<&ObjectProp>) -> Option<Range<usize>> {
+    prop
+      .and_then(|prop| prop.value.as_string_lit())
+      .map(|value| value.range())
+      .map(|range| range.start..range.end)
+  }
+}
 
+impl Validator for Version {
+  fn validate(&self, prop: Option<&ObjectProp>) -> miette::Result<()> {
     let regex = lazy_regex::regex_is_match!(
       r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$",
       &self
     );
 
     if regex {
-      return diagnostics;
+      return Ok(());
     }
 
-    let range = prop
-      .and_then(|prop| prop.value.as_string_lit())
-      .map(|value| value.range())
-      .and_then(|range| Some(range.start..range.end));
+    let range = self.get_version_range(prop);
 
-    let Some(range) = range else {
-      return diagnostics;
-    };
-
-    let label = LabeledSpan::at(range, "here".to_string());
-    let diagnostic = MietteDiagnostic::new(r"Package version does not match required pattern")
-      .with_labels(vec![label])
+    let mut diagnostic = MietteDiagnostic::new(r"Package version does not match required pattern")
       .with_help(r"Expected pattern: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$")
       .with_severity(Severity::Error)
       .with_code("E0001");
 
-    diagnostics.push(diagnostic);
-    diagnostics
+    if let Some(range) = range {
+      let label = LabeledSpan::at(range, "here".to_string());
+      diagnostic = diagnostic.with_labels(vec![label]);
+    }
+
+    return Err(miette::miette!(diagnostic));
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::{case::t, ext::Validator};
+  use crate::PackageJsonParser;
 
   #[test]
   fn should_pass_validate_version() {
@@ -55,31 +59,21 @@ mod tests {
       r#"{"version": "1.0.0-alpha.1+build.1"}"#,
     ];
 
-    t(&jsones, |parser, parse_result| {
-      let version = parse_result
-        .value
-        .as_ref()
-        .and_then(|v| v.as_object())
-        .and_then(|obj| obj.get("version"));
-      let res = parser.version.unwrap().validate(version);
-      assert!(res.len() == 0);
-      res
-    });
+    for json in jsones {
+      let res = PackageJsonParser::parse_str(json).unwrap();
+      let res = res.validate();
+      assert!(res.is_ok());
+    }
   }
 
   #[test]
   fn should_fail_validate_version() {
     let jsones = [r#"{"version": "hello"}"#];
 
-    t(&jsones, |parser, parse_result| {
-      let version = parse_result
-        .value
-        .as_ref()
-        .and_then(|v| v.as_object())
-        .and_then(|obj| obj.get("version"));
-      let res = parser.version.unwrap().validate(version);
-      assert!(res.len() == 1);
-      res
-    });
+    for json in jsones {
+      let res = PackageJsonParser::parse_str(json).unwrap();
+      let res = res.validate();
+      assert!(res.is_err());
+    }
   }
 }

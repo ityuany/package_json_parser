@@ -10,7 +10,7 @@ fn should_pass_when_bin_is_valid() {
             }
         }
     "#;
-  let package_json_parser = serde_json::from_str::<PackageJsonParser>(raw);
+  let package_json_parser = PackageJsonParser::parse_str(raw);
 
   assert!(package_json_parser.is_ok());
 
@@ -31,7 +31,7 @@ fn should_fail_when_bin_is_invalid() {
             "bin": "test"
         }
     "#;
-  let package_json_parser = serde_json::from_str::<PackageJsonParser>(raw);
+  let package_json_parser = PackageJsonParser::parse_str(raw);
 
   assert!(package_json_parser.is_ok());
 
@@ -53,7 +53,7 @@ fn should_pass_when_bin_is_valid_with_name() {
             "bin": "./uni.js"
         }
     "#;
-  let package_json_parser = serde_json::from_str::<PackageJsonParser>(raw);
+  let package_json_parser = PackageJsonParser::parse_str(raw);
 
   assert!(package_json_parser.is_ok());
 

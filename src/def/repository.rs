@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use jsonc_parser::{ast::ObjectProp, common::Ranged};
 use miette::{LabeledSpan, MietteDiagnostic, Severity};
 use serde::{Deserialize, Serialize};
@@ -18,31 +20,35 @@ pub struct Repository {
   pub directory: Option<String>,
 }
 
-impl Validator for Repository {
-  fn validate(&self, repos: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
-    let mut diagnostics = vec![];
+impl Repository {
+  fn get_repository_url_range(&self, repos: Option<&ObjectProp>) -> Option<Range<usize>> {
+    repos
+      .and_then(|prop| prop.value.as_object())
+      .and_then(|obj| obj.get("url"))
+      .and_then(|prop| prop.value.as_string_lit())
+      .map(|value| value.range())
+      .map(|range| range.start..range.end)
+  }
+}
 
+impl Validator for Repository {
+  fn validate(&self, repos: Option<&ObjectProp>) -> miette::Result<()> {
     if let Some(url) = self.url.as_ref() {
       if !ValidatorUtil::is_url(url) {
-        let mut labels = vec![];
-        if let Some(range) = repos
-          .and_then(|prop| prop.value.as_object())
-          .and_then(|obj| obj.get("url"))
-          .and_then(|prop| prop.value.as_string_lit())
-          .map(|value| value.range())
-          .and_then(|range| Some(range.start..range.end))
-        {
-          labels.push(LabeledSpan::at(range, "Invalid url"));
-        }
-        let diagnostic = MietteDiagnostic::new("Invalid url".to_string())
-          .with_labels(labels)
+        let mut diagnostic = MietteDiagnostic::new("Invalid url".to_string())
           .with_severity(Severity::Error)
-          .with_help("Please provide a valid url");
-        diagnostics.push(diagnostic);
+          .with_help("Please provide a valid url")
+          .with_code("invalid_url");
+
+        if let Some(range) = self.get_repository_url_range(repos) {
+          let label = LabeledSpan::at(range, "Invalid url");
+          diagnostic = diagnostic.with_labels(vec![label]);
+        }
+
+        return Err(miette::miette!(diagnostic));
       }
     }
-
-    diagnostics
+    Ok(())
   }
 }
 
@@ -54,37 +60,45 @@ pub enum RepositoryOrString {
 }
 
 impl RepositoryOrString {
-  pub fn validate(&self, repository: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
-    let mut diagnostics = vec![];
+  fn get_repository_string_lit_range(
+    &self,
+    repository: Option<&ObjectProp>,
+  ) -> Option<Range<usize>> {
+    repository
+      .and_then(|prop| prop.value.as_string_lit())
+      .map(|value| value.range())
+      .map(|range| range.start..range.end)
+  }
+}
+impl RepositoryOrString {
+  pub fn validate(&self, repository: Option<&ObjectProp>) -> miette::Result<()> {
     match self {
       RepositoryOrString::Repository(repos) => {
-        diagnostics.extend(repos.validate(repository));
+        return repos.validate(repository);
       }
       RepositoryOrString::String(string) => {
         if !ValidatorUtil::is_url(string) {
-          let mut labels = vec![];
-          if let Some(range) = repository
-            .and_then(|prop| prop.value.as_string_lit())
-            .map(|value| value.range())
-            .and_then(|range| Some(range.start..range.end))
-          {
-            labels.push(LabeledSpan::at(range, "Invalid url"));
-          }
-          let diagnostic = MietteDiagnostic::new("Invalid url".to_string())
-            .with_labels(labels)
+          let mut diagnostic = MietteDiagnostic::new("Invalid url".to_string())
             .with_severity(Severity::Error)
-            .with_help("Please provide a valid url");
-          diagnostics.push(diagnostic);
+            .with_help("Please provide a valid url")
+            .with_code("invalid_url");
+
+          if let Some(range) = self.get_repository_string_lit_range(repository) {
+            let label = LabeledSpan::at(range, "Invalid url");
+            diagnostic = diagnostic.with_labels(vec![label]);
+          }
+
+          return Err(miette::miette!(diagnostic));
         }
       }
     }
-    diagnostics
+    Ok(())
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::case::t;
+  use crate::PackageJsonParser;
 
   #[test]
   fn should_pass_validate_repository() {
@@ -93,16 +107,11 @@ mod tests {
       r#"{"repository": "https://github.com/rust-lang/rust"}"#,
     ];
 
-    t(&jsones, |parser, parse_result| {
-      let repository = parse_result
-        .value
-        .as_ref()
-        .and_then(|v| v.as_object())
-        .and_then(|v| v.get("repository"));
-      let res = parser.repository.unwrap().validate(repository);
-      assert!(res.is_empty());
-      res
-    });
+    for json in jsones {
+      let res = PackageJsonParser::parse_str(json).unwrap();
+      let res = res.validate();
+      assert!(res.is_ok());
+    }
   }
 
   #[test]
@@ -112,15 +121,10 @@ mod tests {
       r#"{"repository": "invalid"}"#,
     ];
 
-    t(&jsones, |parser, parse_result| {
-      let repository = parse_result
-        .value
-        .as_ref()
-        .and_then(|v| v.as_object())
-        .and_then(|v| v.get("repository"));
-      let res = parser.repository.unwrap().validate(repository);
-      assert!(!res.is_empty());
-      res
-    });
+    for json in jsones {
+      let res = PackageJsonParser::parse_str(json).unwrap();
+      let res = res.validate();
+      assert!(res.is_err());
+    }
   }
 }

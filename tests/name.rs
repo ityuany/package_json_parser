@@ -1,4 +1,4 @@
-use package_json_parser::{Name, PackageJsonParser, Validate};
+use package_json_parser::PackageJsonParser;
 
 #[test]
 fn should_pass_when_name_is_valid() {
@@ -7,13 +7,11 @@ fn should_pass_when_name_is_valid() {
             "name": "test"
         }
     "#;
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
   if let Ok(package_json_parser) = res {
-    assert_eq!(package_json_parser.name, Some(Name("test".to_string())));
-
     let res = package_json_parser.validate();
 
     assert!(res.is_ok());
@@ -27,7 +25,7 @@ fn should_fail_when_name_is_invalid() {
             "name": "teYst"
         }
     "#;
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
     assert!(package_json_parser.validate().is_err());

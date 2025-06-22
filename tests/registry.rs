@@ -1,4 +1,4 @@
-use package_json_parser::{PackageJsonParser, Validate};
+use package_json_parser::PackageJsonParser;
 
 #[test]
 fn should_pass_when_homepage_is_valid() {
@@ -10,7 +10,7 @@ fn should_pass_when_homepage_is_valid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
@@ -29,7 +29,7 @@ fn should_pass_when_repository_is_valid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 

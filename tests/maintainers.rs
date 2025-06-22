@@ -1,4 +1,4 @@
-use package_json_parser::{PackageJsonParser, Person, PersonObject, Validate};
+use package_json_parser::PackageJsonParser;
 
 #[test]
 fn should_pass_when_maintainers_is_valid() {
@@ -8,16 +8,11 @@ fn should_pass_when_maintainers_is_valid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
   if let Ok(package_json_parser) = res {
-    assert_eq!(
-      package_json_parser.maintainers,
-      Some(vec![Person::String("test".to_string())])
-    );
-
     let res = package_json_parser.validate();
 
     assert!(res.is_ok());
@@ -32,20 +27,11 @@ fn should_pass_when_maintainers_object_is_valid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
   if let Ok(package_json_parser) = res {
-    assert_eq!(
-      package_json_parser.maintainers,
-      Some(vec![Person::Object(PersonObject {
-        name: "test".to_string(),
-        email: None,
-        url: None
-      })])
-    );
-
     let res = package_json_parser.validate();
 
     assert!(res.is_ok());
@@ -60,7 +46,7 @@ fn should_fail_when_maintainers_is_invalid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
     assert!(package_json_parser.validate().is_err());

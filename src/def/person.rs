@@ -1,6 +1,7 @@
 use jsonc_parser::{ast::ObjectProp, common::Ranged};
 use miette::{LabeledSpan, MietteDiagnostic, Severity};
 use serde::{Deserialize, Serialize};
+use std::ops::Range;
 
 use crate::ext::Validator;
 
@@ -18,50 +19,79 @@ pub struct PersonObject {
   pub url: Option<String>,
 }
 
-impl Validator for Person {
-  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
-    let mut diagnostics = vec![];
+impl Person {
+  fn get_person_string_lit_range(&self, prop: Option<&ObjectProp>) -> Option<Range<usize>> {
+    prop
+      .and_then(|prop| prop.value.as_string_lit())
+      .map(|value| value.range())
+      .map(|range| range.start..range.end)
+  }
 
+  fn get_person_object_name_range(&self, prop: Option<&ObjectProp>) -> Option<Range<usize>> {
+    prop
+      .and_then(|prop| prop.value.as_object())
+      .and_then(|obj| obj.get("name"))
+      .and_then(|prop| prop.value.as_string_lit())
+      .map(|value| value.range())
+      .map(|range| range.start..range.end)
+  }
+
+  fn get_person_object_email_range(&self, prop: Option<&ObjectProp>) -> Option<Range<usize>> {
+    prop
+      .and_then(|prop| prop.value.as_object())
+      .and_then(|obj| obj.get("email"))
+      .and_then(|prop| prop.value.as_string_lit())
+      .map(|value| value.range())
+      .map(|range| range.start..range.end)
+  }
+
+  fn get_person_object_url_range(&self, prop: Option<&ObjectProp>) -> Option<Range<usize>> {
+    prop
+      .and_then(|prop| prop.value.as_object())
+      .and_then(|obj| obj.get("url"))
+      .and_then(|prop| prop.value.as_string_lit())
+      .map(|value| value.range())
+      .map(|range| range.start..range.end)
+  }
+}
+
+impl Validator for Person {
+  fn validate(&self, prop: Option<&ObjectProp>) -> miette::Result<()> {
     match self {
       Person::String(name) => {
-        if name.is_empty() {
-          let mut labels = vec![];
-
-          let range = prop
-            .and_then(|prop| prop.value.as_string_lit())
-            .map(|value| value.range())
-            .and_then(|range| Some(range.start..range.end));
-
-          if let Some(range) = range {
-            labels.push(LabeledSpan::at(range, "Invalid name"));
-          }
-
-          if !labels.is_empty() {
-            let diagnostic = MietteDiagnostic::new("Invalid name".to_string())
-              .with_labels(labels)
-              .with_severity(Severity::Error)
-              .with_help("Please provide a valid name")
-              .with_code("invalid_name");
-            diagnostics.push(diagnostic);
-          }
+        if !name.is_empty() {
+          return Ok(());
         }
-        return diagnostics;
+
+        let range = self.get_person_string_lit_range(prop);
+
+        let mut diagnostic = MietteDiagnostic::new("Invalid name".to_string())
+          .with_help("Please provide a valid name")
+          .with_severity(Severity::Error)
+          .with_code("invalid_name");
+
+        if let Some(range) = range {
+          let label = LabeledSpan::at(range, "Invalid name");
+          diagnostic = diagnostic.with_labels(vec![label]);
+        }
+
+        return Err(miette::miette!(diagnostic));
       }
       Person::Object(person) => {
-        let author = prop.and_then(|v| v.value.as_object());
-
-        let mut labels = vec![];
-
         if person.name.is_empty() {
-          let range = author
-            .and_then(|v| v.get("name"))
-            .and_then(|v| v.value.as_string_lit())
-            .map(|v| v.range())
-            .and_then(|range| Some(range.start..range.end));
+          let mut diagnostic = MietteDiagnostic::new("Invalid name".to_string())
+            .with_help("Please provide a valid name")
+            .with_severity(Severity::Error)
+            .with_code("invalid_name");
+
+          let range = self.get_person_object_name_range(prop);
 
           if let Some(range) = range {
-            labels.push(LabeledSpan::at(range, "Invalid name"));
+            let label = LabeledSpan::at(range, "Invalid name");
+            diagnostic = diagnostic.with_labels(vec![label]);
           }
+
+          return Err(miette::miette!(diagnostic));
         }
 
         if let Some(email) = person.email.as_ref() {
@@ -69,50 +99,49 @@ impl Validator for Person {
             r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
             email
           ) {
-            let range = author
-              .and_then(|obj| obj.get("email"))
-              .and_then(|prop| prop.value.as_string_lit())
-              .map(|value| value.range())
-              .and_then(|range| Some(range.start..range.end));
+            let mut diagnostic = MietteDiagnostic::new("Invalid email".to_string())
+              .with_help("Please provide a valid email")
+              .with_severity(Severity::Error)
+              .with_code("invalid_email");
+
+            let range = self.get_person_object_email_range(prop);
 
             if let Some(range) = range {
-              labels.push(LabeledSpan::at(range, "Invalid email"));
+              let label = LabeledSpan::at(range, "Invalid email");
+              diagnostic = diagnostic.with_labels(vec![label]);
             }
+
+            return Err(miette::miette!(diagnostic));
           }
         }
 
         if let Some(url) = person.url.as_ref() {
           if !lazy_regex::regex_is_match!(r"^https?://", url) {
-            let range = author
-              .and_then(|obj| obj.get("url"))
-              .and_then(|prop| prop.value.as_string_lit())
-              .map(|value| value.range())
-              .and_then(|range| Some(range.start..range.end));
+            let mut diagnostic = MietteDiagnostic::new("Invalid URL".to_string())
+              .with_help("Please provide a valid URL")
+              .with_severity(Severity::Error)
+              .with_code("invalid_url");
+
+            let range = self.get_person_object_url_range(prop);
 
             if let Some(range) = range {
-              labels.push(LabeledSpan::at(range, "Invalid URL"));
+              let label = LabeledSpan::at(range, "Invalid URL");
+              diagnostic = diagnostic.with_labels(vec![label]);
             }
+
+            return Err(miette::miette!(diagnostic));
           }
         }
 
-        if !labels.is_empty() {
-          let diagnostic = MietteDiagnostic::new("Invalid email or URL".to_string())
-            .with_labels(labels)
-            .with_severity(Severity::Error)
-            .with_help("Please provide a valid email or URL")
-            .with_code("invalid_email_or_url");
-          diagnostics.push(diagnostic);
-        }
+        Ok(())
       }
     }
-
-    diagnostics
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::{case::t, ext::Validator};
+  use crate::PackageJsonParser;
 
   #[test]
   fn should_pass_validate_person() {
@@ -123,17 +152,11 @@ mod tests {
       r#"{ "author": { "name": "test", "email": "test@example.com", "url": "https://example.com" } }"#,
     ];
 
-    t(&jsones, |parser, parse_result| {
-      let author = parse_result
-        .value
-        .as_ref()
-        .and_then(|v| v.as_object())
-        .and_then(|obj| obj.get("author"));
-
-      let res = parser.author.unwrap().validate(author);
-      assert!(res.is_empty());
-      res
-    });
+    for json in jsones {
+      let res = PackageJsonParser::parse_str(json).unwrap();
+      let res = res.validate();
+      assert!(res.is_ok());
+    }
   }
 
   #[test]
@@ -146,16 +169,10 @@ mod tests {
       r#"{ "author": "" }"#,
     ];
 
-    t(&jsones, |parser, parse_result| {
-      let author = parse_result
-        .value
-        .as_ref()
-        .and_then(|v| v.as_object())
-        .and_then(|obj| obj.get("author"));
-
-      let res = parser.author.unwrap().validate(author);
-      assert!(!res.is_empty());
-      res
-    });
+    for json in jsones {
+      let res = PackageJsonParser::parse_str(json).unwrap();
+      let res = res.validate();
+      assert!(res.is_err());
+    }
   }
 }

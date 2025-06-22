@@ -1,5 +1,4 @@
 use jsonc_parser::ast::ObjectProp;
-use miette::MietteDiagnostic;
 use serde::{Deserialize, Serialize};
 
 use crate::ext::Validator;
@@ -11,7 +10,7 @@ pub struct Readme {
 }
 
 impl Validator for Readme {
-  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
-    vec![]
+  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
+    Ok(())
   }
 }

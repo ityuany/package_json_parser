@@ -1,5 +1,4 @@
 use jsonc_parser::ast::ObjectProp;
-use miette::MietteDiagnostic;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -13,8 +12,7 @@ pub enum Bin {
 }
 
 impl Validator for Bin {
-  fn validate(&self, _bin: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
-    let diagnostics = vec![];
-    diagnostics
+  fn validate(&self, _bin: Option<&ObjectProp>) -> miette::Result<()> {
+    Ok(())
   }
 }

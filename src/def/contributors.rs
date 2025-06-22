@@ -1,6 +1,5 @@
 use crate::def::Person;
 use jsonc_parser::ast::ObjectProp;
-use miette::MietteDiagnostic;
 use serde::{Deserialize, Serialize};
 
 use crate::ext::Validator;
@@ -9,31 +8,9 @@ use crate::ext::Validator;
 pub struct Contributors(pub Vec<Person>);
 
 impl Validator for Contributors {
-  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
-    let mut diagnostics = vec![];
-
-    // if let Some(contributors) = contributors {
-    //   for contributor in contributors.elements.iter() {
-    //     let x = contributor.as_object();
-    //     let person = Person::from(contributor);
-    //     diagnostics.extend(person.validate(None));
-    //   }
-    // } else {
-    //   // diagnostics.extend(person.validate(None));
-    // }
-    // TODO: validate contributors
-    // for person in &self.0 {
-    //   if let Some(contributors) = contributors {
-    //     for contributor in contributors {
-    //       diagnostics.extend(person.validate(contributor));
-    //     }
-    //   } else {
-    //     diagnostics.extend(person.validate(None));
-    //   }
-    // }
-    todo!();
-
-    diagnostics
+  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
+    // todo!();
+    Ok(())
   }
 }
 

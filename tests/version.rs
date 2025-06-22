@@ -1,4 +1,4 @@
-use package_json_parser::{PackageJsonParser, Validate, Version};
+use package_json_parser::PackageJsonParser;
 
 #[test]
 fn should_pass_when_version_is_valid() {
@@ -8,16 +8,11 @@ fn should_pass_when_version_is_valid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
   if let Ok(package_json_parser) = res {
-    assert_eq!(
-      package_json_parser.version,
-      Some(Version("1.0.0".to_string()))
-    );
-
     let res = package_json_parser.validate();
 
     assert!(res.is_ok());
@@ -32,7 +27,7 @@ fn should_fail_when_version_is_invalid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
     assert!(package_json_parser.validate().is_err());

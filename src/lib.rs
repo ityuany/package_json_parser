@@ -14,7 +14,6 @@ use std::{fs::File, io::BufReader};
 pub use crate::err::ErrorKind;
 pub use miette::{LabeledSpan, NamedSource, Result, SourceSpan};
 
-mod case;
 mod def;
 mod err;
 mod ext;
@@ -72,10 +71,10 @@ pub struct PackageJsonParser {
 
   #[serde(rename = "publishConfig", skip_serializing_if = "Option::is_none")]
   pub publish_config: Option<PublishConfig>,
-  // pub browser: Option<String>,
+  // // pub browser: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub bin: Option<Bin>,
-  // pub typings: Option<String>,
+
   #[serde(skip_serializing_if = "Option::is_none")]
   pub man: Option<Man>,
 
@@ -85,8 +84,8 @@ pub struct PackageJsonParser {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub repository: Option<RepositoryOrString>,
 
-  // pub funding: Option<Funding>,
-  // pub config: Option<HashMap<String, String>>,
+  // // pub funding: Option<Funding>,
+  // // pub config: Option<HashMap<String, String>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub module: Option<Module>,
 
@@ -111,21 +110,20 @@ pub struct PackageJsonParser {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub scripts: Option<Scripts>,
 
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub dependencies: Option<FxHashMap<String, String>>,
+  // #[serde(skip_serializing_if = "Option::is_none")]
+  // pub dependencies: Option<FxHashMap<String, String>>,
 
-  #[serde(rename = "devDependencies", skip_serializing_if = "Option::is_none")]
-  pub dev_dependencies: Option<FxHashMap<String, String>>,
+  // #[serde(rename = "devDependencies", skip_serializing_if = "Option::is_none")]
+  // pub dev_dependencies: Option<FxHashMap<String, String>>,
 
-  #[serde(
-    rename = "optionalDependencies",
-    skip_serializing_if = "Option::is_none"
-  )]
-  pub optional_dependencies: Option<FxHashMap<String, String>>,
+  // #[serde(
+  //   rename = "optionalDependencies",
+  //   skip_serializing_if = "Option::is_none"
+  // )]
+  // pub optional_dependencies: Option<FxHashMap<String, String>>,
 
-  #[serde(rename = "peerDependencies", skip_serializing_if = "Option::is_none")]
-  pub peer_dependencies: Option<FxHashMap<String, String>>,
-
+  // #[serde(rename = "peerDependencies", skip_serializing_if = "Option::is_none")]
+  // pub peer_dependencies: Option<FxHashMap<String, String>>,
   #[serde(skip)]
   pub __raw_source: Option<String>,
 
@@ -145,9 +143,18 @@ impl PackageJsonParser {
   //   }
   // }
 
-  pub fn validate(&self) {
-    let mut diagnostics = vec![];
+  fn handle_error(&self, e: miette::Result<()>) -> miette::Result<()> {
+    if let Err(e) = e {
+      if let Some(path) = self.__raw_path.as_ref() {
+        let name_source = NamedSource::new(path, self.__raw_source.as_ref().unwrap().clone());
+        return Err(e.with_source_code(name_source));
+      }
+      return Err(e.with_source_code(self.__raw_source.as_ref().unwrap().clone()));
+    }
+    Ok(())
+  }
 
+  pub fn validate(&self) -> miette::Result<()> {
     let parse_result = parse_to_ast(
       self.__raw_source.as_ref().unwrap(),
       &CollectOptions::default(),
@@ -159,159 +166,150 @@ impl PackageJsonParser {
 
     if let Some(name) = self.name.as_ref() {
       let name_json = root.and_then(|obj| obj.get("name"));
-      diagnostics.extend(name.validate(name_json));
+      self.handle_error(name.validate(name_json))?;
     }
 
     if let Some(version) = self.version.as_ref() {
       let version_json = root.and_then(|obj| obj.get("version"));
-      diagnostics.extend(version.validate(version_json));
+      self.handle_error(version.validate(version_json))?;
     }
 
     if let Some(description) = self.description.as_ref() {
       let description_json = root.and_then(|obj| obj.get("description"));
-      diagnostics.extend(description.validate(description_json));
+      self.handle_error(description.validate(description_json))?;
     }
 
     if let Some(keywords) = self.keywords.as_ref() {
       let keywords_json = root.and_then(|obj| obj.get("keywords"));
-      diagnostics.extend(keywords.validate(keywords_json));
+      self.handle_error(keywords.validate(keywords_json))?;
     }
 
     if let Some(homepage) = self.homepage.as_ref() {
       let homepage_json = root.and_then(|obj| obj.get("homepage"));
-      diagnostics.extend(homepage.validate(homepage_json));
+      self.handle_error(homepage.validate(homepage_json))?;
     }
 
     if let Some(bugs) = self.bugs.as_ref() {
       let bugs_json = root.and_then(|obj| obj.get("bugs"));
-      diagnostics.extend(bugs.validate(bugs_json));
+      self.handle_error(bugs.validate(bugs_json))?;
     }
 
     if let Some(license) = self.license.as_ref() {
       let license_json = root.and_then(|obj| obj.get("license"));
-      diagnostics.extend(license.validate(license_json));
+      self.handle_error(license.validate(license_json))?;
     }
 
     if let Some(author) = self.author.as_ref() {
       let author_json = root.and_then(|obj| obj.get("author"));
-      diagnostics.extend(author.validate(author_json));
+      self.handle_error(author.validate(author_json))?;
     }
 
     if let Some(contributors) = self.contributors.as_ref() {
       let contributors_json = root.and_then(|obj| obj.get("contributors"));
-      diagnostics.extend(contributors.validate(contributors_json));
+      self.handle_error(contributors.validate(contributors_json))?;
     }
 
     if let Some(maintainers) = self.maintainers.as_ref() {
       let maintainers_json = root.and_then(|obj| obj.get("maintainers"));
-      diagnostics.extend(maintainers.validate(maintainers_json));
+      self.handle_error(maintainers.validate(maintainers_json))?;
     }
 
     if let Some(files) = self.files.as_ref() {
       let files_json = root.and_then(|obj| obj.get("files"));
-      diagnostics.extend(files.validate(files_json));
+      self.handle_error(files.validate(files_json))?;
     }
 
     if let Some(main) = self.main.as_ref() {
       let main_json = root.and_then(|obj| obj.get("main"));
-      diagnostics.extend(main.validate(main_json));
+      self.handle_error(main.validate(main_json))?;
     }
 
     if let Some(r#type) = self.r#type.as_ref() {
       let r#type_json = root.and_then(|obj| obj.get("type"));
-      diagnostics.extend(r#type.validate(r#type_json));
+      self.handle_error(r#type.validate(r#type_json))?;
     }
 
     if let Some(types) = self.types.as_ref() {
       let types_json = root.and_then(|obj| obj.get("types"));
-      diagnostics.extend(types.validate(types_json));
+      self.handle_error(types.validate(types_json))?;
     }
 
     if let Some(typings) = self.typings.as_ref() {
       let typings_json = root.and_then(|obj| obj.get("typings"));
-      diagnostics.extend(typings.validate(typings_json));
+      self.handle_error(typings.validate(typings_json))?;
     }
 
     if let Some(package_manager) = self.package_manager.as_ref() {
       let package_manager_json = root.and_then(|obj| obj.get("packageManager"));
-      diagnostics.extend(package_manager.validate(package_manager_json));
+      self.handle_error(package_manager.validate(package_manager_json))?;
     }
 
     if let Some(publish_config) = self.publish_config.as_ref() {
       let publish_config_json = root.and_then(|obj| obj.get("publishConfig"));
-      diagnostics.extend(publish_config.validate(publish_config_json));
+      self.handle_error(publish_config.validate(publish_config_json))?;
     }
 
     if let Some(bin) = self.bin.as_ref() {
       let bin_json = root.and_then(|obj| obj.get("bin"));
-      diagnostics.extend(bin.validate(bin_json));
+      self.handle_error(bin.validate(bin_json))?;
     }
 
     if let Some(man) = self.man.as_ref() {
       let man_json = root.and_then(|obj| obj.get("man"));
-      diagnostics.extend(man.validate(man_json));
+      self.handle_error(man.validate(man_json))?;
     }
 
     if let Some(directories) = self.directories.as_ref() {
       let directories_json = root.and_then(|obj| obj.get("directories"));
-      diagnostics.extend(directories.validate(directories_json));
+      self.handle_error(directories.validate(directories_json))?;
     }
 
     if let Some(repository) = self.repository.as_ref() {
       let repository_json = root.and_then(|obj| obj.get("repository"));
-      diagnostics.extend(repository.validate(repository_json));
+      self.handle_error(repository.validate(repository_json))?;
     }
 
     if let Some(module) = self.module.as_ref() {
       let module_json = root.and_then(|obj| obj.get("module"));
-      diagnostics.extend(module.validate(module_json));
+      self.handle_error(module.validate(module_json))?;
     }
 
     if let Some(readme) = self.readme.as_ref() {
       let readme_json = root.and_then(|obj| obj.get("readme"));
-      diagnostics.extend(readme.validate(readme_json));
+      self.handle_error(readme.validate(readme_json))?;
     }
 
     if let Some(private) = self.private.as_ref() {
       let private_json = root.and_then(|obj| obj.get("private"));
-      diagnostics.extend(private.validate(private_json));
+      self.handle_error(private.validate(private_json))?;
     }
 
     if let Some(engines) = self.engines.as_ref() {
       let engines_json = root.and_then(|obj| obj.get("engines"));
-      diagnostics.extend(engines.validate(engines_json));
+      self.handle_error(engines.validate(engines_json))?;
     }
 
     if let Some(engine_strict) = self.engine_strict.as_ref() {
       let engine_strict_json = root.and_then(|obj| obj.get("engineStrict"));
-      diagnostics.extend(engine_strict.validate(engine_strict_json));
+      self.handle_error(engine_strict.validate(engine_strict_json))?;
     }
 
     if let Some(os) = self.os.as_ref() {
       let os_json = root.and_then(|obj| obj.get("os"));
-      diagnostics.extend(os.validate(os_json));
+      self.handle_error(os.validate(os_json))?;
     }
 
     if let Some(cpu) = self.cpu.as_ref() {
       let cpu_json = root.and_then(|obj| obj.get("cpu"));
-      diagnostics.extend(cpu.validate(cpu_json));
+      self.handle_error(cpu.validate(cpu_json))?;
     }
 
     if let Some(scripts) = self.scripts.as_ref() {
       let scripts_json = root.and_then(|obj| obj.get("scripts"));
-      diagnostics.extend(scripts.validate(scripts_json));
+      self.handle_error(scripts.validate(scripts_json))?;
     }
 
-    if !diagnostics.is_empty() {
-      println!("validate success");
-      for diagnostic in diagnostics {
-        let report = miette::Report::from(diagnostic)
-          .with_source_code(self.__raw_source.as_ref().unwrap().clone());
-        println!("{:?}", report);
-      }
-    }
-
-    // diagnostics
+    Ok(())
   }
 
   pub fn parse_str(content: &str) -> Result<Self> {
@@ -421,9 +419,12 @@ mod tests {
     let jsones = [r#"
       {
 
-        "private": true
+        "private": true,
+        "bugs": "http11s://example.com"
       }"#];
     let j = PackageJsonParser::parse_str(jsones[0]).unwrap();
-    println!("{:?}", j.private);
+    let res = j.validate();
+    assert!(res.is_err());
+    // println!("{:?}", j);
   }
 }

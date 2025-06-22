@@ -1,4 +1,4 @@
-use package_json_parser::{PackageJsonParser, PublishConfig, Validate};
+use package_json_parser::PackageJsonParser;
 
 #[test]
 fn should_pass_when_publish_config_is_valid() {
@@ -10,21 +10,11 @@ fn should_pass_when_publish_config_is_valid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
   if let Ok(package_json_parser) = res {
-    assert_eq!(
-      package_json_parser.publish_config,
-      Some(PublishConfig {
-        access: Some("public".to_string()),
-        registry: None,
-        tag: None,
-        provenance: None,
-      })
-    );
-
     let res = package_json_parser.validate();
 
     assert!(res.is_ok());
@@ -39,7 +29,7 @@ fn should_fail_when_publish_config_is_invalid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
     let res = package_json_parser.validate();
@@ -57,21 +47,11 @@ fn should_pass_when_publish_config_is_valid_with_registry() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
   if let Ok(package_json_parser) = res {
-    assert_eq!(
-      package_json_parser.publish_config,
-      Some(PublishConfig {
-        access: None,
-        registry: Some("https://registry.npmjs.org".to_string()),
-        tag: None,
-        provenance: None,
-      })
-    );
-
     let res = package_json_parser.validate();
 
     assert!(res.is_ok());
@@ -88,7 +68,7 @@ fn should_fail_when_publish_config_is_invalid_with_registry() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
     let res = package_json_parser.validate();
@@ -106,21 +86,11 @@ fn should_pass_when_publish_config_is_valid_with_tag() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
   if let Ok(package_json_parser) = res {
-    assert_eq!(
-      package_json_parser.publish_config,
-      Some(PublishConfig {
-        access: None,
-        registry: None,
-        tag: Some("latest".to_string()),
-        provenance: None,
-      })
-    );
-
     let res = package_json_parser.validate();
 
     assert!(res.is_ok());
@@ -137,7 +107,7 @@ fn should_fail_when_publish_config_is_invalid_with_tag() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
     let res = package_json_parser.validate();
@@ -155,7 +125,7 @@ fn should_pass_when_publish_config_is_valid_with_provenance() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 }

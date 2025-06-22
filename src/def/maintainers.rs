@@ -1,7 +1,6 @@
 use crate::Person;
 use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
-use miette::MietteDiagnostic;
 use serde::{Deserialize, Serialize};
 
 use crate::ext::Validator;
@@ -10,8 +9,7 @@ use crate::ext::Validator;
 pub struct Maintainers(Vec<Person>);
 
 impl Validator for Maintainers {
-  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<MietteDiagnostic> {
-    todo!();
-    vec![]
+  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
+    Ok(())
   }
 }

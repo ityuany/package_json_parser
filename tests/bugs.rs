@@ -1,4 +1,4 @@
-use package_json_parser::{Bugs, PackageJsonParser, Validate};
+use package_json_parser::{Bugs, PackageJsonParser};
 
 #[test]
 fn should_pass_when_bugs_is_valid_url() {
@@ -8,7 +8,7 @@ fn should_pass_when_bugs_is_valid_url() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
@@ -32,7 +32,7 @@ fn should_pass_when_bugs_is_valid_email() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
@@ -59,7 +59,7 @@ fn should_pass_when_bugs_is_valid_object() {
     }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   assert!(res.is_ok());
 
@@ -77,7 +77,7 @@ fn should_fail_when_bugs_is_invalid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
     assert!(package_json_parser.validate().is_err());
@@ -95,7 +95,7 @@ fn should_fail_when_bugs_object_is_invalid() {
         }
     "#;
 
-  let res = serde_json::from_str::<PackageJsonParser>(raw);
+  let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
     let res = package_json_parser.validate();
