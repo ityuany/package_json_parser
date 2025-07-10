@@ -7,8 +7,8 @@ pub use def::name::*;
 pub use def::package_manager::*;
 pub use def::person::*;
 pub use def::publish_config::*;
-pub use def::repository::*;
 pub use def::r#type::*;
+pub use def::repository::*;
 pub use def::version::*;
 
 pub use rustc_hash::FxHashMap;
@@ -41,7 +41,7 @@ pub struct PackageJsonParser {
   pub description: Option<String>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub keywords: Option<Vec<String>>,
+  pub keywords: Option<String>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
   pub homepage: Option<String>,
