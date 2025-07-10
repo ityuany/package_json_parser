@@ -4,7 +4,7 @@ use package_json_parser::{PackageJsonParser, Validate};
 fn should_pass_when_keywords_is_valid() {
   let raw = r#"
         {
-            "keywords": ["test"]
+            "keywords": "test"
         }
     "#;
 
@@ -13,7 +13,7 @@ fn should_pass_when_keywords_is_valid() {
   assert!(res.is_ok());
 
   if let Ok(package_json_parser) = res {
-    assert_eq!(package_json_parser.keywords, Some(vec!["test".to_string()]));
+    assert_eq!(package_json_parser.keywords, Some("test".to_string()));
 
     let res = package_json_parser.validate();
 
