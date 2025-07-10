@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::ext::Validator;
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone, Deref, DerefMut)]
-pub struct Types(Vec<String>);
+pub struct Types(String);
 
 impl Validator for Types {
   fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
