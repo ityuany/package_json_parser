@@ -2,20 +2,29 @@ use package_json_parser::PackageJsonParser;
 
 #[test]
 fn should_pass_when_main_is_valid() {
-  let raw = r#"
+  let raw = [
+    r#"
         {
             "main": "test"
         }
-    "#;
+    "#,
+    r#"
+        {
+            "main": false
+        }
+    "#,
+  ];
 
-  let res = PackageJsonParser::parse_str(raw);
-
-  assert!(res.is_ok());
-
-  if let Ok(package_json_parser) = res {
-    let res = package_json_parser.validate();
+  for raw in raw {
+    let res = PackageJsonParser::parse_str(raw);
 
     assert!(res.is_ok());
+
+    if let Ok(package_json_parser) = res {
+      let res = package_json_parser.validate();
+
+      assert!(res.is_ok());
+    }
   }
 }
 
