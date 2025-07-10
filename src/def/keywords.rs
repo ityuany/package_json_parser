@@ -1,10 +1,13 @@
 use crate::ext::Validator;
-use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Deref, DerefMut)]
-pub struct Keywords(Vec<String>);
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum Keywords {
+  String(String),
+  Array(Vec<String>),
+}
 
 impl Validator for Keywords {
   fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
