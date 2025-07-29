@@ -4,7 +4,7 @@ use jsonc_parser::ast::ObjectProp;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone, Deref, DerefMut)]
+#[derive(Debug, Serialize, Deserialize, Clone, Deref, DerefMut, Default)]
 pub struct Dependencies(FxHashMap<String, String>);
 
 impl Validator for Dependencies {

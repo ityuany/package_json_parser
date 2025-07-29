@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ext::Validator;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Deref, DerefMut)]
+#[derive(Debug, Serialize, Deserialize, Clone, Deref, DerefMut, Default)]
 pub struct DevDependencies(FxHashMap<String, String>);
 
 impl Validator for DevDependencies {
