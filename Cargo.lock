@@ -352,7 +352,7 @@ checksum = "26995317201fa17f3656c36716aed4a7c81743a9634ac4c99c0eeda495db0cec"
 
 [[package]]
 name = "package_json_parser"
-version = "0.0.14"
+version = "0.0.15"
 dependencies = [
  "derive_more",
  "jsonc-parser",
