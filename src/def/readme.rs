@@ -4,7 +4,14 @@ use serde::{Deserialize, Serialize};
 use crate::ext::Validator;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Readme {
+#[serde(untagged)]
+pub enum Readme {
+  String(String),
+  Object(ReadmeContent),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ReadmeContent {
   pub r#type: String,
   pub value: String,
 }
