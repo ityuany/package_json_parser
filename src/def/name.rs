@@ -19,7 +19,7 @@ impl Name {
   }
 
   pub fn get_bin_name(&self) -> &str {
-    &self.split("/").last().unwrap_or(&self)
+    self.split("/").last().unwrap_or(self)
   }
 }
 
