@@ -17,6 +17,10 @@ impl Name {
       .map(|value| value.range())
       .map(|range| range.start..range.end)
   }
+
+  pub fn get_bin_name(&self) -> &str {
+    &self.split("/").last().unwrap_or(&self)
+  }
 }
 
 impl Validator for Name {
