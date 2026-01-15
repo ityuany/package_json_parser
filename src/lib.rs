@@ -420,17 +420,17 @@ impl TryFrom<&str> for PackageJsonParser {
 
 impl PackageJsonParser {
   pub fn bin_to_hash_map(&self) -> Result<HashMap<String, String>> {
-    let bin = self.bin.as_ref().unwrap();
-
-    let Some(name) = &self.name else {
-      return Err(miette::miette!(ErrorKind::NameRequired));
+    let Some(bin) = &self.bin else {
+      return Ok(HashMap::default());
     };
-
-    let bin_name = name.get_bin_name();
 
     let bin = match bin {
       Bin::String(v) => {
         let mut map = HashMap::default();
+        let Some(name) = &self.name else {
+          return Err(miette::miette!(ErrorKind::NameRequired));
+        };
+        let bin_name = name.get_bin_name();
         map.insert(bin_name.to_string(), v.to_string());
         map
       }
