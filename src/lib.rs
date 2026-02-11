@@ -1,7 +1,7 @@
 pub use def::*;
 use miette::{MietteDiagnostic, Severity};
 
-use crate::err::{JsonFileParseError, JsonStrParseError};
+use crate::err::JsonParseError;
 use crate::ext::Validator;
 use jsonc_parser::{CollectOptions, ParseOptions, parse_to_ast};
 pub use rustc_hash::FxHashMap;
@@ -132,20 +132,27 @@ pub struct PackageJsonParser {
 }
 
 impl PackageJsonParser {
+  fn raw_source(&self) -> miette::Result<&str> {
+    self
+      .__raw_source
+      .as_deref()
+      .ok_or_else(|| miette::miette!("raw source is not available, was this parsed correctly?"))
+  }
+
   fn handle_error(&self, e: miette::Result<()>) -> miette::Result<()> {
-    if let Err(e) = e {
-      if let Some(path) = self.__raw_path.as_ref() {
-        let name_source = NamedSource::new(path, self.__raw_source.as_ref().unwrap().clone());
-        return Err(e.with_source_code(name_source));
-      }
-      return Err(e.with_source_code(self.__raw_source.as_ref().unwrap().clone()));
+    let Err(e) = e else {
+      return Ok(());
+    };
+    let source = self.raw_source()?.to_string();
+    if let Some(path) = self.__raw_path.as_ref() {
+      return Err(e.with_source_code(NamedSource::new(path, source)));
     }
-    Ok(())
+    Err(e.with_source_code(source))
   }
 
   pub fn validate(&self) -> miette::Result<()> {
     let Ok(parse_result) = parse_to_ast(
-      self.__raw_source.as_ref().unwrap(),
+      self.raw_source()?,
       &CollectOptions::default(),
       &ParseOptions::default(),
     ) else {
@@ -207,34 +214,36 @@ impl PackageJsonParser {
     Ok(())
   }
 
+  fn build_parse_error<S: miette::SourceCode + std::fmt::Debug + 'static>(
+    src: S,
+    content: &str,
+    error: serde_json::Error,
+  ) -> miette::Report {
+    let line = error.line();
+    let offset = content
+      .lines()
+      .take(line.saturating_sub(1))
+      .map(|l| l.len() + 1)
+      .sum::<usize>();
+    let len = content
+      .lines()
+      .nth(line.saturating_sub(1))
+      .unwrap_or("")
+      .len();
+
+    miette::miette!(JsonParseError {
+      src,
+      primary_span: Some(SourceSpan::from(0..content.len())),
+      other_spans: vec![LabeledSpan::new(Some("here".to_string()), offset, len)],
+      source: Some(error),
+      advice: Some("Please check the JSON syntax".to_string()),
+    })
+  }
+
   pub fn parse_str(content: &str) -> Result<Self> {
     let mut package_json_parser: PackageJsonParser =
-      serde_json::from_str(&content).map_err(|e| {
-        let line = e.line();
-        let _col = e.column();
-
-        let offset = content
-          .lines()
-          .take(line.saturating_sub(1))
-          .map(|l| l.len() + 1)
-          .sum::<usize>();
-
-        let len = content
-          .lines()
-          .nth(line.saturating_sub(1))
-          .unwrap_or("")
-          .len();
-
-        let primary_span = SourceSpan::from(0..content.len());
-
-        let err = JsonStrParseError {
-          src: content.to_string(),
-          primary_span: Some(primary_span),
-          other_spans: vec![LabeledSpan::new(Some("here".to_string()), offset, len)],
-          source: Some(e),
-          advice: Some("Please check the JSON syntax".to_string()),
-        };
-        miette::miette!(err)
+      serde_json::from_str(content).map_err(|e| {
+        Self::build_parse_error(content.to_string(), content, e)
       })?;
     package_json_parser.__raw_source = Some(content.to_string());
     Ok(package_json_parser)
@@ -249,33 +258,8 @@ impl PackageJsonParser {
       .map_err(ErrorKind::IoError)?;
     let mut package_json_parser: PackageJsonParser =
       serde_json::from_str(&content).map_err(|e| {
-        let line = e.line();
-        let _col = e.column();
-
-        let offset = content
-          .lines()
-          .take(line.saturating_sub(1))
-          .map(|l| l.len() + 1)
-          .sum::<usize>();
-
-        let len = content
-          .lines()
-          .nth(line.saturating_sub(1))
-          .unwrap_or("")
-          .len();
-
-        let primary_span = SourceSpan::from(0..content.len());
-
-        let name_source = NamedSource::new(path.as_ref().to_str().unwrap(), content.clone());
-
-        let err = JsonFileParseError {
-          src: name_source,
-          primary_span: Some(primary_span),
-          other_spans: vec![LabeledSpan::new(Some("here".to_string()), offset, len)],
-          source: Some(e),
-          advice: Some("Please check the JSON syntax".to_string()),
-        };
-        miette::miette!(err)
+        let src = NamedSource::new(path.as_ref().to_string_lossy(), content.clone());
+        Self::build_parse_error(src, &content, e)
       })?;
     package_json_parser.__raw_source = Some(content);
     package_json_parser.__raw_path = Some(path.as_ref().to_string_lossy().to_string());
