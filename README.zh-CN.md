@@ -19,13 +19,13 @@
 
 ```toml
 [dependencies]
-package_json_parser = "0.0.1"
+package_json_parser = "0.0.15"
 ```
 
 ## 使用方法
 
 ```rust
-use package_json_parser::PackageJson;
+use package_json_parser::PackageJsonParser;
 
 fn main() {
     let json_str = r#"
@@ -38,10 +38,14 @@ fn main() {
     }
     "#;
 
-    match PackageJson::from_str(json_str) {
+    match PackageJsonParser::parse_str(json_str) {
         Ok(package) => {
-            println!("包名: {}", package.name);
-            println!("版本: {}", package.version);
+            if let Some(name) = package.name.as_ref() {
+                println!("包名: {}", name.as_str());
+            }
+            if let Some(version) = package.version.as_ref() {
+                println!("版本: {}", version.as_str());
+            }
             
             // 验证 package.json
             match package.validate() {
@@ -57,7 +61,7 @@ fn main() {
 ### 验证示例
 
 ```rust
-use package_json_parser::PackageJson;
+use package_json_parser::PackageJsonParser;
 
 fn main() {
     // 验证有效的 package.json
@@ -76,26 +80,25 @@ fn main() {
     }
     "#;
 
-    let package = PackageJson::from_str(valid_json).unwrap();
+    let package = PackageJsonParser::parse_str(valid_json).unwrap();
     assert!(package.validate().is_ok());
 
-    // 验证无效的 package.json
+    // 验证无效的 package.json（JSON 语法合法，但字段不符合 package.json 规则）
     let invalid_json = r#"
     {
-        "name": "my-package",
-        "version": "invalid-version",  // 无效的版本号
-        "description": 123,            // 无效的类型
-        "main": true                   // 无效的类型
+        "name": "MyPackage",
+        "version": "invalid-version",
+        "bugs": "not-a-url-or-email"
     }
     "#;
 
-    let package = PackageJson::from_str(invalid_json).unwrap();
+    let package = PackageJsonParser::parse_str(invalid_json).unwrap();
     if let Err(e) = package.validate() {
         println!("验证错误: {}", e);
         // 输出类似:
-        // 验证错误: version: 无效的版本号格式
-        // description: 必须是字符串
-        // main: 必须是字符串
+        // 验证错误: 包名不符合要求的正则规则
+        // 验证错误: version 字段格式非法
+        // 验证错误: bugs 不是合法 URL 或邮箱
     }
 }
 ```

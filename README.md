@@ -19,13 +19,13 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-package_json_parser = "0.0.1"
+package_json_parser = "0.0.15"
 ```
 
 ## Usage
 
 ```rust
-use package_json_parser::PackageJson;
+use package_json_parser::PackageJsonParser;
 
 fn main() {
     let json_str = r#"
@@ -38,10 +38,14 @@ fn main() {
     }
     "#;
 
-    match PackageJson::from_str(json_str) {
+    match PackageJsonParser::parse_str(json_str) {
         Ok(package) => {
-            println!("Package name: {}", package.name);
-            println!("Version: {}", package.version);
+            if let Some(name) = package.name.as_ref() {
+                println!("Package name: {}", name.as_str());
+            }
+            if let Some(version) = package.version.as_ref() {
+                println!("Version: {}", version.as_str());
+            }
             
             // Validate package.json
             match package.validate() {
@@ -57,7 +61,7 @@ fn main() {
 ### Validation Examples
 
 ```rust
-use package_json_parser::PackageJson;
+use package_json_parser::PackageJsonParser;
 
 fn main() {
     // Validate a valid package.json
@@ -76,26 +80,25 @@ fn main() {
     }
     "#;
 
-    let package = PackageJson::from_str(valid_json).unwrap();
+    let package = PackageJsonParser::parse_str(valid_json).unwrap();
     assert!(package.validate().is_ok());
 
-    // Validate an invalid package.json
+    // Validate an invalid package.json (JSON is valid, but fields violate package.json rules)
     let invalid_json = r#"
     {
-        "name": "my-package",
-        "version": "invalid-version",  // invalid version format
-        "description": 123,            // invalid type
-        "main": true                   // invalid type
+        "name": "MyPackage",
+        "version": "invalid-version",
+        "bugs": "not-a-url-or-email"
     }
     "#;
 
-    let package = PackageJson::from_str(invalid_json).unwrap();
+    let package = PackageJsonParser::parse_str(invalid_json).unwrap();
     if let Err(e) = package.validate() {
         println!("Validation errors: {}", e);
-        // Output similar to:
+        // Output is similar to:
+        // Validation errors: Package name does not match required pattern
         // Validation errors: version: invalid version format
-        // description: must be a string
-        // main: must be a string
+        // Validation errors: Invalid URL or email
     }
 }
 ```
