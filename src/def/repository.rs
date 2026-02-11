@@ -16,23 +16,6 @@ pub struct Repository {
   pub directory: Option<String>,
 }
 
-impl Validator for Repository {
-  fn validate(&self, repos: Option<&ObjectProp>) -> miette::Result<()> {
-    if let Some(url) = self.url.as_ref() {
-      if !url.validate_url() {
-        return Err(validation_error(
-          "Invalid url",
-          Some("invalid_url"),
-          "Please provide a valid url",
-          value_range(repos, &["url"]),
-          "Invalid url",
-        ));
-      }
-    }
-    Ok(())
-  }
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum RepositoryOrString {
@@ -40,11 +23,22 @@ pub enum RepositoryOrString {
   String(String),
 }
 
-impl RepositoryOrString {
-  pub fn validate(&self, repository: Option<&ObjectProp>) -> miette::Result<()> {
+impl Validator for RepositoryOrString {
+  fn validate(&self, repository: Option<&ObjectProp>) -> miette::Result<()> {
     match self {
       RepositoryOrString::Repository(repos) => {
-        return repos.validate(repository);
+        if let Some(url) = repos.url.as_ref() {
+          if !url.validate_url() {
+            return Err(validation_error(
+              "Invalid url",
+              Some("invalid_url"),
+              "Please provide a valid url",
+              value_range(repository, &["url"]),
+              "Invalid url",
+            ));
+          }
+        }
+        Ok(())
       }
       RepositoryOrString::String(string) => {
         if !string.validate_url() {
@@ -56,9 +50,9 @@ impl RepositoryOrString {
             "Invalid url",
           ));
         }
+        Ok(())
       }
     }
-    Ok(())
   }
 }
 
