@@ -1,21 +1,11 @@
-use crate::ext::Validator;
 use derive_more::{Deref, DerefMut};
-use jsonc_parser::{ast::ObjectProp, common::Ranged};
-use miette::{LabeledSpan, MietteDiagnostic, Severity};
+use jsonc_parser::ast::ObjectProp;
 use serde::{Deserialize, Serialize};
-use std::ops::Range;
+
+use crate::ext::{Validator, validation_error, value_range};
 
 #[derive(Debug, PartialEq, Deserialize, Serialize, Clone, Deref, DerefMut)]
 pub struct License(String);
-
-impl License {
-  fn get_license_range(&self, prop: Option<&ObjectProp>) -> Option<Range<usize>> {
-    prop
-      .and_then(|prop| prop.value.as_string_lit())
-      .map(|value| value.range())
-      .map(|range| range.start..range.end)
-  }
-}
 
 impl Validator for License {
   fn validate(&self, prop: Option<&ObjectProp>) -> miette::Result<()> {
@@ -28,19 +18,13 @@ impl Validator for License {
       return Ok(());
     }
 
-    let range = self.get_license_range(prop);
-
-    let mut diagnostic = MietteDiagnostic::new("Invalid license".to_string())
-      .with_help("Please provide a valid license")
-      .with_severity(Severity::Error)
-      .with_code("invalid_license");
-
-    if let Some(range) = range {
-      let label = LabeledSpan::at(range, "here".to_string());
-      diagnostic = diagnostic.with_labels(vec![label]);
-    }
-
-    return Err(miette::miette!(diagnostic));
+    Err(validation_error(
+      "Invalid license",
+      Some("invalid_license"),
+      "Please provide a valid license",
+      value_range(prop, &[]),
+      "here",
+    ))
   }
 }
 

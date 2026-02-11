@@ -158,170 +158,51 @@ impl PackageJsonParser {
 
     let root = parse_result.value.as_ref().and_then(|v| v.as_object());
 
-    if let Some(name) = self.name.as_ref() {
-      let name_json = root.and_then(|obj| obj.get("name"));
-      self.handle_error(name.validate(name_json))?;
+    macro_rules! validate_field {
+      ($field:ident, $json_key:expr) => {
+        if let Some(ref val) = self.$field {
+          let prop = root.and_then(|obj| obj.get($json_key));
+          self.handle_error(val.validate(prop))?;
+        }
+      };
+      ($field:ident) => {
+        validate_field!($field, stringify!($field));
+      };
     }
 
-    if let Some(version) = self.version.as_ref() {
-      let version_json = root.and_then(|obj| obj.get("version"));
-      self.handle_error(version.validate(version_json))?;
-    }
-
-    if let Some(description) = self.description.as_ref() {
-      let description_json = root.and_then(|obj| obj.get("description"));
-      self.handle_error(description.validate(description_json))?;
-    }
-
-    if let Some(keywords) = self.keywords.as_ref() {
-      let keywords_json = root.and_then(|obj| obj.get("keywords"));
-      self.handle_error(keywords.validate(keywords_json))?;
-    }
-
-    if let Some(homepage) = self.homepage.as_ref() {
-      let homepage_json = root.and_then(|obj| obj.get("homepage"));
-      self.handle_error(homepage.validate(homepage_json))?;
-    }
-
-    if let Some(bugs) = self.bugs.as_ref() {
-      let bugs_json = root.and_then(|obj| obj.get("bugs"));
-      self.handle_error(bugs.validate(bugs_json))?;
-    }
-
-    if let Some(license) = self.license.as_ref() {
-      let license_json = root.and_then(|obj| obj.get("license"));
-      self.handle_error(license.validate(license_json))?;
-    }
-
-    if let Some(author) = self.author.as_ref() {
-      let author_json = root.and_then(|obj| obj.get("author"));
-      self.handle_error(author.validate(author_json))?;
-    }
-
-    if let Some(contributors) = self.contributors.as_ref() {
-      let contributors_json = root.and_then(|obj| obj.get("contributors"));
-      self.handle_error(contributors.validate(contributors_json))?;
-    }
-
-    if let Some(maintainers) = self.maintainers.as_ref() {
-      let maintainers_json = root.and_then(|obj| obj.get("maintainers"));
-      self.handle_error(maintainers.validate(maintainers_json))?;
-    }
-
-    if let Some(files) = self.files.as_ref() {
-      let files_json = root.and_then(|obj| obj.get("files"));
-      self.handle_error(files.validate(files_json))?;
-    }
-
-    if let Some(main) = self.main.as_ref() {
-      let main_json = root.and_then(|obj| obj.get("main"));
-      self.handle_error(main.validate(main_json))?;
-    }
-
-    if let Some(r#type) = self.r#type.as_ref() {
-      let r#type_json = root.and_then(|obj| obj.get("type"));
-      self.handle_error(r#type.validate(r#type_json))?;
-    }
-
-    if let Some(types) = self.types.as_ref() {
-      let types_json = root.and_then(|obj| obj.get("types"));
-      self.handle_error(types.validate(types_json))?;
-    }
-
-    if let Some(typings) = self.typings.as_ref() {
-      let typings_json = root.and_then(|obj| obj.get("typings"));
-      self.handle_error(typings.validate(typings_json))?;
-    }
-
-    if let Some(package_manager) = self.package_manager.as_ref() {
-      let package_manager_json = root.and_then(|obj| obj.get("packageManager"));
-      self.handle_error(package_manager.validate(package_manager_json))?;
-    }
-
-    if let Some(publish_config) = self.publish_config.as_ref() {
-      let publish_config_json = root.and_then(|obj| obj.get("publishConfig"));
-      self.handle_error(publish_config.validate(publish_config_json))?;
-    }
-
-    if let Some(bin) = self.bin.as_ref() {
-      let bin_json = root.and_then(|obj| obj.get("bin"));
-      self.handle_error(bin.validate(bin_json))?;
-    }
-
-    if let Some(man) = self.man.as_ref() {
-      let man_json = root.and_then(|obj| obj.get("man"));
-      self.handle_error(man.validate(man_json))?;
-    }
-
-    if let Some(directories) = self.directories.as_ref() {
-      let directories_json = root.and_then(|obj| obj.get("directories"));
-      self.handle_error(directories.validate(directories_json))?;
-    }
-
-    if let Some(repository) = self.repository.as_ref() {
-      let repository_json = root.and_then(|obj| obj.get("repository"));
-      self.handle_error(repository.validate(repository_json))?;
-    }
-
-    if let Some(module) = self.module.as_ref() {
-      let module_json = root.and_then(|obj| obj.get("module"));
-      self.handle_error(module.validate(module_json))?;
-    }
-
-    if let Some(readme) = self.readme.as_ref() {
-      let readme_json = root.and_then(|obj| obj.get("readme"));
-      self.handle_error(readme.validate(readme_json))?;
-    }
-
-    if let Some(private) = self.private.as_ref() {
-      let private_json = root.and_then(|obj| obj.get("private"));
-      self.handle_error(private.validate(private_json))?;
-    }
-
-    if let Some(engines) = self.engines.as_ref() {
-      let engines_json = root.and_then(|obj| obj.get("engines"));
-      self.handle_error(engines.validate(engines_json))?;
-    }
-
-    if let Some(engine_strict) = self.engine_strict.as_ref() {
-      let engine_strict_json = root.and_then(|obj| obj.get("engineStrict"));
-      self.handle_error(engine_strict.validate(engine_strict_json))?;
-    }
-
-    if let Some(os) = self.os.as_ref() {
-      let os_json = root.and_then(|obj| obj.get("os"));
-      self.handle_error(os.validate(os_json))?;
-    }
-
-    if let Some(cpu) = self.cpu.as_ref() {
-      let cpu_json = root.and_then(|obj| obj.get("cpu"));
-      self.handle_error(cpu.validate(cpu_json))?;
-    }
-
-    if let Some(scripts) = self.scripts.as_ref() {
-      let scripts_json = root.and_then(|obj| obj.get("scripts"));
-      self.handle_error(scripts.validate(scripts_json))?;
-    }
-
-    if let Some(dependencies) = self.dependencies.as_ref() {
-      let dependencies_json = root.and_then(|obj| obj.get("dependencies"));
-      self.handle_error(dependencies.validate(dependencies_json))?;
-    }
-
-    if let Some(dev_dependencies) = self.dev_dependencies.as_ref() {
-      let dev_dependencies_json = root.and_then(|obj| obj.get("devDependencies"));
-      self.handle_error(dev_dependencies.validate(dev_dependencies_json))?;
-    }
-
-    if let Some(optional_dependencies) = self.optional_dependencies.as_ref() {
-      let optional_dependencies_json = root.and_then(|obj| obj.get("optionalDependencies"));
-      self.handle_error(optional_dependencies.validate(optional_dependencies_json))?;
-    }
-
-    if let Some(peer_dependencies) = self.peer_dependencies.as_ref() {
-      let peer_dependencies_json = root.and_then(|obj| obj.get("peerDependencies"));
-      self.handle_error(peer_dependencies.validate(peer_dependencies_json))?;
-    }
+    validate_field!(name);
+    validate_field!(version);
+    validate_field!(description);
+    validate_field!(keywords);
+    validate_field!(homepage);
+    validate_field!(bugs);
+    validate_field!(license);
+    validate_field!(author);
+    validate_field!(contributors);
+    validate_field!(maintainers);
+    validate_field!(files);
+    validate_field!(main);
+    validate_field!(r#type, "type");
+    validate_field!(types);
+    validate_field!(typings);
+    validate_field!(package_manager, "packageManager");
+    validate_field!(publish_config, "publishConfig");
+    validate_field!(bin);
+    validate_field!(man);
+    validate_field!(directories);
+    validate_field!(repository);
+    validate_field!(module);
+    validate_field!(readme);
+    validate_field!(private);
+    validate_field!(engines);
+    validate_field!(engine_strict, "engineStrict");
+    validate_field!(os);
+    validate_field!(cpu);
+    validate_field!(scripts);
+    validate_field!(dependencies);
+    validate_field!(dev_dependencies, "devDependencies");
+    validate_field!(optional_dependencies, "optionalDependencies");
+    validate_field!(peer_dependencies, "peerDependencies");
 
     Ok(())
   }

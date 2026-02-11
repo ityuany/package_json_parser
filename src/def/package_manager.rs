@@ -1,23 +1,11 @@
-use std::ops::Range;
-
 use derive_more::{Deref, DerefMut};
-use jsonc_parser::{ast::ObjectProp, common::Ranged};
-use miette::{LabeledSpan, MietteDiagnostic, Severity};
+use jsonc_parser::ast::ObjectProp;
 use serde::{Deserialize, Serialize};
 
-use crate::ext::Validator;
+use crate::ext::{Validator, validation_error, value_range};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Eq, Clone, Deref, DerefMut)]
 pub struct PackageManager(String);
-
-impl PackageManager {
-  fn get_package_manager_range(&self, prop: Option<&ObjectProp>) -> Option<Range<usize>> {
-    prop
-      .and_then(|prop| prop.value.as_string_lit())
-      .map(|value| value.range())
-      .map(|range| range.start..range.end)
-  }
-}
 
 impl Validator for PackageManager {
   fn validate(&self, prop: Option<&ObjectProp>) -> miette::Result<()> {
@@ -27,19 +15,13 @@ impl Validator for PackageManager {
       return Ok(());
     }
 
-    let range = self.get_package_manager_range(prop);
-
-    let mut diagnostic = MietteDiagnostic::new("Invalid package manager".to_string())
-      .with_help("Please provide a valid package manager")
-      .with_severity(Severity::Error)
-      .with_code("invalid_package_manager");
-
-    if let Some(range) = range {
-      let label = LabeledSpan::at(range, "here".to_string());
-      diagnostic = diagnostic.with_labels(vec![label]);
-    }
-
-    return Err(miette::miette!(diagnostic));
+    Err(validation_error(
+      "Invalid package manager",
+      Some("invalid_package_manager"),
+      "Please provide a valid package manager",
+      value_range(prop, &[]),
+      "here",
+    ))
   }
 }
 
