@@ -19,7 +19,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-package_json_parser = "0.0.15"
+package_json_parser = "0.0.16"
 ```
 
 ## Usage
