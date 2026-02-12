@@ -30,6 +30,6 @@ fn should_fail_when_license_is_invalid() {
   let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
-    assert!(package_json_parser.validate_strict().unwrap().has_errors());
+    assert!(package_json_parser.validate_with(package_json_parser::ValidationOptions::error()).unwrap().has_errors());
   }
 }

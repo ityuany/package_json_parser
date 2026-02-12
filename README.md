@@ -109,7 +109,7 @@ fn main() {
     assert!(report.warnings.len() >= 1);
 
     // 2) Strict mode: violations become errors
-    let report = package.validate_strict().unwrap();
+    let report = package.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
     assert!(report.has_errors());
 
     // 3) Global + field override:
@@ -125,7 +125,7 @@ fn main() {
 
 - Before `v0.0.16`: `validate()` returned `Result<()>` and failed on first violation.
 - Since `v0.0.16`: `validate()` returns `Result<ValidationReport>` and defaults to lenient mode.
-- To keep blocking behavior, use `validate_strict()` and check `report.has_errors()`.
+- To keep blocking behavior, use `validate_with(package_json_parser::ValidationOptions::error())` and check `report.has_errors()`.
 
 ## Documentation
 

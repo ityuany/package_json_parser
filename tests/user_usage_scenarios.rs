@@ -34,7 +34,7 @@ fn lenient_and_strict_validation_have_different_behavior() {
   assert!(!lenient.has_errors());
   assert!(lenient.warnings.len() >= 3);
 
-  let strict = pkg.validate_strict().unwrap();
+  let strict = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
   assert!(strict.has_errors());
   assert!(strict.errors.len() >= 3);
 }
@@ -101,7 +101,7 @@ fn nested_paths_are_visible_in_issues() {
   }
   "#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let report = pkg.validate_strict().unwrap();
+  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
 
   assert!(
     report
@@ -180,7 +180,7 @@ fn same_field_override_last_write_wins() {
 fn validation_report_helpers_are_consistent() {
   let raw = r#"{ "name": "MyPackage", "version": "invalid-version" }"#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let report = pkg.validate_strict().unwrap();
+  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
 
   assert!(report.has_errors());
   assert!(!report.is_clean());
@@ -194,7 +194,7 @@ fn validation_report_helpers_are_consistent() {
 fn collect_all_keeps_multiple_issues_for_same_field() {
   let raw = r#"{ "bugs": { "url": "invalid", "email": "invalid" } }"#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let report = pkg.validate_strict().unwrap();
+  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
 
   let bugs_issues = report
     .errors
@@ -208,7 +208,7 @@ fn collect_all_keeps_multiple_issues_for_same_field() {
 fn top_level_issue_uses_top_level_json_path() {
   let raw = r#"{ "version": "invalid-version" }"#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let report = pkg.validate_strict().unwrap();
+  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
 
   assert!(
     report

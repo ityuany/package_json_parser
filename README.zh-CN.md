@@ -109,7 +109,7 @@ fn main() {
     assert!(report.warnings.len() >= 1);
 
     // 2) 严格模式：违规会进入 errors
-    let report = package.validate_strict().unwrap();
+    let report = package.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
     assert!(report.has_errors());
 
     // 3) 全局 + 字段覆盖：
@@ -125,7 +125,7 @@ fn main() {
 
 - `v0.0.16` 之前：`validate()` 返回 `Result<()>`，遇到首个违规即返回失败。
 - `v0.0.16` 起：`validate()` 返回 `Result<ValidationReport>`，默认是宽松模式。
-- 如果你需要“发现违规就阻断”，请使用 `validate_strict()` 并检查 `report.has_errors()`。
+- 如果你需要“发现违规就阻断”，请使用 `validate_with(package_json_parser::ValidationOptions::error())` 并检查 `report.has_errors()`。
 
 ## 文档
 

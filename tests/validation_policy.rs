@@ -26,9 +26,9 @@ fn validate_is_lenient_by_default() {
 }
 
 #[test]
-fn validate_strict_reports_errors() {
+fn validate_with_error_reports_errors() {
   let pkg = PackageJsonParser::parse_str(invalid_payload()).unwrap();
-  let report = pkg.validate_strict().unwrap();
+  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
 
   assert!(report.has_errors());
   assert!(report.errors.len() >= 3);
@@ -56,7 +56,7 @@ fn field_override_takes_precedence_over_global_default() {
 }
 
 #[test]
-fn strict_mode_can_downgrade_specific_field_to_warning() {
+fn error_mode_can_downgrade_specific_field_to_warning() {
   let raw = r#"{ "license": "MIT1" }"#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
   let options =
@@ -71,7 +71,7 @@ fn strict_mode_can_downgrade_specific_field_to_warning() {
 #[test]
 fn collect_all_issues_in_single_pass() {
   let pkg = PackageJsonParser::parse_str(invalid_payload()).unwrap();
-  let report = pkg.validate_strict().unwrap();
+  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
 
   assert!(report.errors.len() >= 4);
 }
@@ -87,7 +87,7 @@ fn nested_json_path_is_preserved() {
   }
   "#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let report = pkg.validate_strict().unwrap();
+  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
 
   assert!(
     report

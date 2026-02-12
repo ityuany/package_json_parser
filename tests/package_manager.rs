@@ -30,7 +30,7 @@ fn should_fail_when_package_manager_is_invalid() {
   let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
-    let report = package_json_parser.validate_strict().unwrap();
+    let report = package_json_parser.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
     assert!(report.has_errors());
   }
 }

@@ -108,7 +108,7 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let report = res.validate_strict().unwrap();
+      let report = res.validate_with(crate::ValidationOptions::error()).unwrap();
       assert!(report.has_errors());
     }
   }

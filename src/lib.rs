@@ -154,10 +154,6 @@ impl PackageJsonParser {
     self.validate_with(ValidationOptions::warning())
   }
 
-  pub fn validate_strict(&self) -> Result<ValidationReport> {
-    self.validate_with(ValidationOptions::error())
-  }
-
   pub fn validate_with(&self, options: ValidationOptions) -> Result<ValidationReport> {
     let Ok(parse_result) = parse_to_ast(
       self.raw_source()?,
