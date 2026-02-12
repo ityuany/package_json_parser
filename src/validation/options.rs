@@ -43,7 +43,7 @@ impl ValidationOptions {
     self
   }
 
-  pub fn severity_for(&self, field: ValidationField) -> ValidationSeverity {
+  pub(crate) fn severity_for(&self, field: ValidationField) -> ValidationSeverity {
     self
       .field_overrides
       .get(&field)
