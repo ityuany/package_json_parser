@@ -8,23 +8,23 @@ use crate::ext::{Validator, validation_error, value_range};
 pub struct License(String);
 
 impl Validator for License {
-  fn validate(&self, prop: Option<&ObjectProp>) -> miette::Result<()> {
+  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
     let regex = lazy_regex::regex_is_match!(
       r"^(AGPL-3.0-only|Apache-2.0|BSD-2-Clause|BSD-3-Clause|BSL-1.0|CC0-1.0|CDDL-1.0|CDDL-1.1|EPL-1.0|EPL-2.0|GPL-2.0-only|GPL-3.0-only|ISC|LGPL-2.0-only|LGPL-2.1-only|LGPL-2.1-or-later|LGPL-3.0-only|LGPL-3.0-or-later|MIT|MPL-2.0|MSPL|UnLicense)$",
       &self
     );
 
     if regex {
-      return Ok(());
+      return vec![];
     }
 
-    Err(validation_error(
+    vec![validation_error(
       "Invalid license",
       Some("invalid_license"),
       "Please provide a valid license",
       value_range(prop, &[]),
-      "here",
-    ))
+      "",
+    )]
   }
 }
 
@@ -54,8 +54,8 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_err());
+      let report = res.validate_strict().unwrap();
+      assert!(report.has_errors());
     }
   }
 }

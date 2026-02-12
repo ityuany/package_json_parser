@@ -8,23 +8,23 @@ use crate::ext::{Validator, validation_error, value_range};
 pub struct Version(String);
 
 impl Validator for Version {
-  fn validate(&self, prop: Option<&ObjectProp>) -> miette::Result<()> {
+  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
     let regex = lazy_regex::regex_is_match!(
       r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$",
       &self
     );
 
     if regex {
-      return Ok(());
+      return vec![];
     }
 
-    Err(validation_error(
+    vec![validation_error(
       "Package version does not match required pattern",
       Some("E0001"),
       r"Expected pattern: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$",
       value_range(prop, &[]),
-      "here",
-    ))
+      "",
+    )]
   }
 }
 
@@ -54,8 +54,8 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_err());
+      let report = res.validate_strict().unwrap();
+      assert!(report.has_errors());
     }
   }
 }

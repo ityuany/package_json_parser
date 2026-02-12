@@ -9,7 +9,7 @@ use crate::ext::Validator;
 pub struct Maintainers(Vec<Person>);
 
 impl Validator for Maintainers {
-  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
-    Ok(())
+  fn validate(&self, _prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
+    vec![]
   }
 }

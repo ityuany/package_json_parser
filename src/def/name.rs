@@ -14,23 +14,23 @@ impl Name {
 }
 
 impl Validator for Name {
-  fn validate(&self, prop: Option<&ObjectProp>) -> miette::Result<()> {
+  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
     let reg_name = lazy_regex::regex_is_match!(
       r"^(?:(?:@(?:[a-z0-9-*~][a-z0-9-*._~]*)?/[a-z0-9-._~])|[a-z0-9-~])[a-z0-9-._~]*$",
       &self
     );
 
     if reg_name {
-      return Ok(());
+      return vec![];
     }
 
-    Err(validation_error(
+    vec![validation_error(
       "Package name does not match required pattern",
       Some("invalid_package_name"),
       r"Expected pattern: ^(?:(?:@(?:[a-z0-9-*~][a-z0-9-*._~]*)?/[a-z0-9-._~])|[a-z0-9-~])[a-z0-9-._~]*$",
       value_range(prop, &[]),
-      "here",
-    ))
+      "",
+    )]
   }
 }
 
@@ -56,8 +56,8 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_err());
+      let report = res.validate_strict().unwrap();
+      assert!(report.has_errors());
     }
   }
 }

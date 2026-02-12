@@ -49,9 +49,12 @@ fn main() {
             
             // Validate package.json
             match package.validate() {
-                Ok(_) => println!("package.json validation passed"),
+                Ok(report) => {
+                    println!("errors: {}", report.errors.len());
+                    println!("warnings: {}", report.warnings.len());
+                }
                 Err(e) => println!("package.json validation failed: {}", e),
-            }
+            };
         }
         Err(e) => println!("Error parsing package.json: {}", e),
     }
@@ -61,7 +64,12 @@ fn main() {
 ### Validation Examples
 
 ```rust
-use package_json_parser::PackageJsonParser;
+use package_json_parser::{
+    PackageJsonParser,
+    ValidationField,
+    ValidationOptions,
+    ValidationSeverity,
+};
 
 fn main() {
     // Validate a valid package.json
@@ -81,7 +89,8 @@ fn main() {
     "#;
 
     let package = PackageJsonParser::parse_str(valid_json).unwrap();
-    assert!(package.validate().is_ok());
+    let report = package.validate().unwrap();
+    assert!(report.is_clean());
 
     // Validate an invalid package.json (JSON is valid, but fields violate package.json rules)
     let invalid_json = r#"
@@ -93,15 +102,30 @@ fn main() {
     "#;
 
     let package = PackageJsonParser::parse_str(invalid_json).unwrap();
-    if let Err(e) = package.validate() {
-        println!("Validation errors: {}", e);
-        // Output is similar to:
-        // Validation errors: Package name does not match required pattern
-        // Validation errors: version: invalid version format
-        // Validation errors: Invalid URL or email
-    }
+
+    // 1) Default mode (lenient): violations are warnings
+    let report = package.validate().unwrap();
+    assert_eq!(report.errors.len(), 0);
+    assert!(report.warnings.len() >= 1);
+
+    // 2) Strict mode: violations become errors
+    let report = package.validate_strict().unwrap();
+    assert!(report.has_errors());
+
+    // 3) Global + field override:
+    //    global Warning, but `name` is forced to Error
+    let options = ValidationOptions::lenient()
+        .field(ValidationField::Name, ValidationSeverity::Error);
+    let report = package.validate_with(options).unwrap();
+    assert!(report.errors.iter().any(|issue| issue.field == ValidationField::Name));
 }
 ```
+
+### Migration Note
+
+- Before `v0.0.16`: `validate()` returned `Result<()>` and failed on first violation.
+- Since `v0.0.16`: `validate()` returns `Result<ValidationReport>` and defaults to lenient mode.
+- To keep blocking behavior, use `validate_strict()` and check `report.has_errors()`.
 
 ## Documentation
 

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct Dependencies(FxHashMap<String, String>);
 
 impl Validator for Dependencies {
-  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
-    Ok(())
+  fn validate(&self, _prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
+    vec![]
   }
 }

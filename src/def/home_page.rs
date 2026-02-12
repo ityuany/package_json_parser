@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct HomePage(String);
 
 impl Validator for HomePage {
-  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
-    Ok(())
+  fn validate(&self, _prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
+    vec![]
   }
 }

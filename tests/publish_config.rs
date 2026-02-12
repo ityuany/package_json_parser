@@ -30,11 +30,7 @@ fn should_fail_when_publish_config_is_invalid() {
     "#;
 
   let res = PackageJsonParser::parse_str(raw);
-
-  if let Ok(package_json_parser) = res {
-    let res = package_json_parser.validate();
-    assert!(res.is_err());
-  }
+  assert!(res.is_err());
 }
 
 #[test]
@@ -71,8 +67,8 @@ fn should_fail_when_publish_config_is_invalid_with_registry() {
   let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
-    let res = package_json_parser.validate();
-    assert!(res.is_err());
+    let report = package_json_parser.validate_strict().unwrap();
+    assert!(report.has_errors());
   }
 }
 

@@ -8,20 +8,20 @@ use crate::ext::{Validator, validation_error, value_range};
 pub struct PackageManager(String);
 
 impl Validator for PackageManager {
-  fn validate(&self, prop: Option<&ObjectProp>) -> miette::Result<()> {
+  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
     let regex = lazy_regex::regex_is_match!(r#"(npm|pnpm|yarn|bun)@\d+\.\d+\.\d+(-.+)?"#, &self);
 
     if regex {
-      return Ok(());
+      return vec![];
     }
 
-    Err(validation_error(
+    vec![validation_error(
       "Invalid package manager",
       Some("invalid_package_manager"),
       "Please provide a valid package manager",
       value_range(prop, &[]),
-      "here",
-    ))
+      "",
+    )]
   }
 }
 
@@ -51,8 +51,8 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_err());
+      let report = res.validate_strict().unwrap();
+      assert!(report.has_errors());
     }
   }
 }

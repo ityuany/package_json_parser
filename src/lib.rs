@@ -13,10 +13,12 @@ use std::{fs::File, io::BufReader};
 
 pub use crate::err::ErrorKind;
 pub use miette::{LabeledSpan, NamedSource, Result, SourceSpan};
+pub use validation::*;
 
 mod def;
 mod err;
 mod ext;
+mod validation;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PackageJsonParser {
@@ -139,18 +141,23 @@ impl PackageJsonParser {
       .ok_or_else(|| miette::miette!("raw source is not available, was this parsed correctly?"))
   }
 
-  fn handle_error(&self, e: miette::Result<()>) -> miette::Result<()> {
-    let Err(e) = e else {
-      return Ok(());
-    };
+  fn with_source(&self, e: miette::Report) -> miette::Result<miette::Report> {
     let source = self.raw_source()?.to_string();
     if let Some(path) = self.__raw_path.as_ref() {
-      return Err(e.with_source_code(NamedSource::new(path, source)));
+      return Ok(e.with_source_code(NamedSource::new(path, source)));
     }
-    Err(e.with_source_code(source))
+    Ok(e.with_source_code(source))
   }
 
-  pub fn validate(&self) -> miette::Result<()> {
+  pub fn validate(&self) -> miette::Result<ValidationReport> {
+    self.validate_with(ValidationOptions::lenient())
+  }
+
+  pub fn validate_strict(&self) -> miette::Result<ValidationReport> {
+    self.validate_with(ValidationOptions::strict())
+  }
+
+  pub fn validate_with(&self, options: ValidationOptions) -> miette::Result<ValidationReport> {
     let Ok(parse_result) = parse_to_ast(
       self.raw_source()?,
       &CollectOptions::default(),
@@ -160,58 +167,64 @@ impl PackageJsonParser {
       let diagnostic = MietteDiagnostic::new("Failed to parse JSON")
         .with_label(labeled_span)
         .with_severity(Severity::Error);
-      return Err(miette::miette!(diagnostic));
+      let report = miette::miette!(diagnostic);
+      return Err(self.with_source(report)?);
     };
 
     let root = parse_result.value.as_ref().and_then(|v| v.as_object());
+    let mut report = ValidationReport::default();
 
     macro_rules! validate_field {
-      ($field:ident, $json_key:expr) => {
+      ($field:ident, $enum_field:expr) => {
         if let Some(ref val) = self.$field {
-          let prop = root.and_then(|obj| obj.get($json_key));
-          self.handle_error(val.validate(prop))?;
+          let prop = root.and_then(|obj| obj.get($enum_field.json_key()));
+          let severity = options.severity_for($enum_field);
+          for violation in val.validate(prop) {
+            report.push(ValidationIssue::from_violation(
+              $enum_field,
+              severity,
+              violation,
+            ));
+          }
         }
-      };
-      ($field:ident) => {
-        validate_field!($field, stringify!($field));
       };
     }
 
-    validate_field!(name);
-    validate_field!(version);
-    validate_field!(description);
-    validate_field!(keywords);
-    validate_field!(homepage);
-    validate_field!(bugs);
-    validate_field!(license);
-    validate_field!(author);
-    validate_field!(contributors);
-    validate_field!(maintainers);
-    validate_field!(files);
-    validate_field!(main);
-    validate_field!(r#type, "type");
-    validate_field!(types);
-    validate_field!(typings);
-    validate_field!(package_manager, "packageManager");
-    validate_field!(publish_config, "publishConfig");
-    validate_field!(bin);
-    validate_field!(man);
-    validate_field!(directories);
-    validate_field!(repository);
-    validate_field!(module);
-    validate_field!(readme);
-    validate_field!(private);
-    validate_field!(engines);
-    validate_field!(engine_strict, "engineStrict");
-    validate_field!(os);
-    validate_field!(cpu);
-    validate_field!(scripts);
-    validate_field!(dependencies);
-    validate_field!(dev_dependencies, "devDependencies");
-    validate_field!(optional_dependencies, "optionalDependencies");
-    validate_field!(peer_dependencies, "peerDependencies");
+    validate_field!(name, ValidationField::Name);
+    validate_field!(version, ValidationField::Version);
+    validate_field!(description, ValidationField::Description);
+    validate_field!(keywords, ValidationField::Keywords);
+    validate_field!(homepage, ValidationField::Homepage);
+    validate_field!(bugs, ValidationField::Bugs);
+    validate_field!(license, ValidationField::License);
+    validate_field!(author, ValidationField::Author);
+    validate_field!(contributors, ValidationField::Contributors);
+    validate_field!(maintainers, ValidationField::Maintainers);
+    validate_field!(files, ValidationField::Files);
+    validate_field!(main, ValidationField::Main);
+    validate_field!(r#type, ValidationField::Type);
+    validate_field!(types, ValidationField::Types);
+    validate_field!(typings, ValidationField::Typings);
+    validate_field!(package_manager, ValidationField::PackageManager);
+    validate_field!(publish_config, ValidationField::PublishConfig);
+    validate_field!(bin, ValidationField::Bin);
+    validate_field!(man, ValidationField::Man);
+    validate_field!(directories, ValidationField::Directories);
+    validate_field!(repository, ValidationField::Repository);
+    validate_field!(module, ValidationField::Module);
+    validate_field!(readme, ValidationField::Readme);
+    validate_field!(private, ValidationField::Private);
+    validate_field!(engines, ValidationField::Engines);
+    validate_field!(engine_strict, ValidationField::EngineStrict);
+    validate_field!(os, ValidationField::Os);
+    validate_field!(cpu, ValidationField::Cpu);
+    validate_field!(scripts, ValidationField::Scripts);
+    validate_field!(dependencies, ValidationField::Dependencies);
+    validate_field!(dev_dependencies, ValidationField::DevDependencies);
+    validate_field!(optional_dependencies, ValidationField::OptionalDependencies);
+    validate_field!(peer_dependencies, ValidationField::PeerDependencies);
 
-    Ok(())
+    Ok(report)
   }
 
   fn build_parse_error<S: miette::SourceCode + std::fmt::Debug + 'static>(
@@ -241,10 +254,8 @@ impl PackageJsonParser {
   }
 
   pub fn parse_str(content: &str) -> Result<Self> {
-    let mut package_json_parser: PackageJsonParser =
-      serde_json::from_str(content).map_err(|e| {
-        Self::build_parse_error(content.to_string(), content, e)
-      })?;
+    let mut package_json_parser: PackageJsonParser = serde_json::from_str(content)
+      .map_err(|e| Self::build_parse_error(content.to_string(), content, e))?;
     package_json_parser.__raw_source = Some(content.to_string());
     Ok(package_json_parser)
   }
@@ -319,8 +330,8 @@ mod tests {
         "bugs": "222https://example.com"
       }"#];
     let j = PackageJsonParser::parse_str(jsones[0]).unwrap();
-    let res = j.validate();
-    assert!(res.is_err());
-    // println!("{:?}", j);
+    let report = j.validate().unwrap();
+    assert!(!report.has_errors());
+    assert!(!report.warnings.is_empty());
   }
 }

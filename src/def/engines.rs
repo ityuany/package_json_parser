@@ -10,7 +10,7 @@ use crate::ext::Validator;
 pub struct Engines(HashMap<String, String>);
 
 impl Validator for Engines {
-  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
-    Ok(())
+  fn validate(&self, _prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
+    vec![]
   }
 }

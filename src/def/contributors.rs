@@ -8,9 +8,8 @@ use crate::ext::Validator;
 pub struct Contributors(pub Vec<Person>);
 
 impl Validator for Contributors {
-  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
-    // todo!();
-    Ok(())
+  fn validate(&self, _prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
+    vec![]
   }
 }
 

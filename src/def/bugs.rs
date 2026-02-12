@@ -21,49 +21,51 @@ pub enum Bugs {
 }
 
 impl Validator for Bugs {
-  fn validate(&self, props: Option<&ObjectProp>) -> miette::Result<()> {
+  fn validate(&self, props: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
     match self {
       Bugs::UrlOrEmail(value) => {
         if value.validate_url() || value.validate_email() {
-          return Ok(());
+          return vec![];
         }
 
-        return Err(validation_error(
+        return vec![validation_error(
           "Invalid URL or email",
           Some("invalid_url_or_email"),
           "Please provide a valid URL or email",
           value_range(props, &[]),
-          "Invalid URL or email",
-        ));
+          "",
+        )];
       }
       Bugs::BugsItem(bugs_item) => {
+        let mut violations = Vec::new();
+
         if let Some(url) = bugs_item.url.as_ref() {
           if !url.validate_url() {
-            return Err(validation_error(
+            violations.push(validation_error(
               "Invalid URL",
               Some("invalid_url"),
               "Please provide a valid URL",
               value_range(props, &["url"]),
-              "Invalid URL",
+              "url",
             ));
           }
         }
 
         if let Some(email) = bugs_item.email.as_ref() {
           if !email.validate_email() {
-            return Err(validation_error(
+            violations.push(validation_error(
               "Invalid Email",
               Some("invalid_email"),
               "Please provide a valid Email",
               value_range(props, &["email"]),
-              "Invalid Email",
+              "email",
             ));
           }
         }
+
+        return violations;
       }
     }
-
-    Ok(())
   }
 }
 
@@ -107,8 +109,8 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_err());
+      let report = res.validate_strict().unwrap();
+      assert!(report.has_errors());
     }
   }
 }

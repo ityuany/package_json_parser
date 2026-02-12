@@ -24,33 +24,34 @@ pub enum RepositoryOrString {
 }
 
 impl Validator for RepositoryOrString {
-  fn validate(&self, repository: Option<&ObjectProp>) -> miette::Result<()> {
+  fn validate(&self, repository: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
     match self {
       RepositoryOrString::Repository(repos) => {
+        let mut violations = Vec::new();
         if let Some(url) = repos.url.as_ref() {
           if !url.validate_url() {
-            return Err(validation_error(
+            violations.push(validation_error(
               "Invalid url",
               Some("invalid_url"),
               "Please provide a valid url",
               value_range(repository, &["url"]),
-              "Invalid url",
+              "url",
             ));
           }
         }
-        Ok(())
+        violations
       }
       RepositoryOrString::String(string) => {
         if !string.validate_url() {
-          return Err(validation_error(
+          return vec![validation_error(
             "Invalid url",
             Some("invalid_url"),
             "Please provide a valid url",
             value_range(repository, &[]),
-            "Invalid url",
-          ));
+            "",
+          )];
         }
-        Ok(())
+        vec![]
       }
     }
   }
@@ -83,8 +84,8 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_err());
+      let report = res.validate_strict().unwrap();
+      assert!(report.has_errors());
     }
   }
 }

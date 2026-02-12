@@ -19,57 +19,58 @@ pub struct PersonObject {
 }
 
 impl Validator for Person {
-  fn validate(&self, prop: Option<&ObjectProp>) -> miette::Result<()> {
+  fn validate(&self, prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
     match self {
       Person::String(name) => {
-        if !name.is_empty() {
-          return Ok(());
+        if name.is_empty() {
+          return vec![validation_error(
+            "Invalid name",
+            Some("invalid_name"),
+            "Please provide a valid name",
+            value_range(prop, &[]),
+            "",
+          )];
         }
-
-        Err(validation_error(
-          "Invalid name",
-          Some("invalid_name"),
-          "Please provide a valid name",
-          value_range(prop, &[]),
-          "Invalid name",
-        ))
+        vec![]
       }
       Person::Object(person) => {
+        let mut violations = Vec::new();
+
         if person.name.is_empty() {
-          return Err(validation_error(
+          violations.push(validation_error(
             "Invalid name",
             Some("invalid_name"),
             "Please provide a valid name",
             value_range(prop, &["name"]),
-            "Invalid name",
+            "name",
           ));
         }
 
         if let Some(email) = person.email.as_ref() {
           if !email.validate_email() {
-            return Err(validation_error(
+            violations.push(validation_error(
               "Invalid email",
               Some("invalid_email"),
               "Please provide a valid email",
               value_range(prop, &["email"]),
-              "Invalid email",
+              "email",
             ));
           }
         }
 
         if let Some(url) = person.url.as_ref() {
           if !url.validate_url() {
-            return Err(validation_error(
+            violations.push(validation_error(
               "Invalid URL",
               Some("invalid_url"),
               "Please provide a valid URL",
               value_range(prop, &["url"]),
-              "Invalid URL",
+              "url",
             ));
           }
         }
 
-        Ok(())
+        violations
       }
     }
   }
@@ -107,8 +108,8 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_err());
+      let report = res.validate_strict().unwrap();
+      assert!(report.has_errors());
     }
   }
 }

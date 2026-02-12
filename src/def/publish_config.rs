@@ -17,28 +17,30 @@ pub struct PublishConfig {
 }
 
 impl Validator for PublishConfig {
-  fn validate(&self, publish_config: Option<&ObjectProp>) -> miette::Result<()> {
+  fn validate(&self, publish_config: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
+    let mut violations = Vec::new();
+
     if let Some(access) = self.access.as_ref() {
       let access_regex = lazy_regex::regex_is_match!(r"^(public|restricted|private)$", access);
       if !access_regex {
-        return Err(validation_error(
+        violations.push(validation_error(
           "Invalid access",
           None,
           "Please provide a valid access",
           value_range(publish_config, &["access"]),
-          "Invalid access",
+          "access",
         ));
       }
     }
 
     if let Some(registry) = self.registry.as_ref() {
       if !registry.validate_url() {
-        return Err(validation_error(
+        violations.push(validation_error(
           "Invalid registry",
           None,
           "Please provide a valid registry",
           value_range(publish_config, &["registry"]),
-          "Invalid registry",
+          "registry",
         ));
       }
     }
@@ -46,29 +48,29 @@ impl Validator for PublishConfig {
     if let Some(tag) = self.tag.as_ref() {
       let tag_regex = lazy_regex::regex_is_match!(r"^[a-zA-Z0-9-_.]+$", tag);
       if !tag_regex {
-        return Err(validation_error(
+        violations.push(validation_error(
           "Invalid tag",
           None,
           "Please provide a valid tag",
           value_range(publish_config, &["tag"]),
-          "Invalid tag",
+          "tag",
         ));
       }
     }
 
     if let Some(provenance) = self.provenance.as_ref() {
       if !provenance {
-        return Err(validation_error(
+        violations.push(validation_error(
           "Invalid provenance",
           None,
           "Please provide a valid provenance",
           value_range(publish_config, &["provenance"]),
-          "Invalid provenance",
+          "provenance",
         ));
       }
     }
 
-    Ok(())
+    violations
   }
 }
 
@@ -102,8 +104,8 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_err());
+      let report = res.validate_strict().unwrap();
+      assert!(report.has_errors());
     }
   }
 }

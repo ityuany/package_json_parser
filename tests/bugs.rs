@@ -80,7 +80,7 @@ fn should_fail_when_bugs_is_invalid() {
   let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
-    assert!(package_json_parser.validate().is_err());
+    assert!(package_json_parser.validate_strict().unwrap().has_errors());
   }
 }
 
@@ -98,7 +98,7 @@ fn should_fail_when_bugs_object_is_invalid() {
   let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
-    let res = package_json_parser.validate();
-    assert!(res.is_err());
+    let report = package_json_parser.validate_strict().unwrap();
+    assert!(report.has_errors());
   }
 }

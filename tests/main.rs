@@ -37,9 +37,5 @@ fn should_fail_when_main_is_invalid() {
     "#;
 
   let res = PackageJsonParser::parse_str(raw);
-
-  if let Ok(package_json_parser) = res {
-    let res = package_json_parser.validate();
-    assert!(res.is_err());
-  }
+  assert!(res.is_err());
 }

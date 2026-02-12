@@ -10,7 +10,7 @@ pub enum Keywords {
 }
 
 impl Validator for Keywords {
-  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
-    Ok(())
+  fn validate(&self, _prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
+    vec![]
   }
 }

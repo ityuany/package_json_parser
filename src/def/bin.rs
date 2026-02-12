@@ -12,7 +12,7 @@ pub enum Bin {
 }
 
 impl Validator for Bin {
-  fn validate(&self, _bin: Option<&ObjectProp>) -> miette::Result<()> {
-    Ok(())
+  fn validate(&self, _bin: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
+    vec![]
   }
 }

@@ -49,9 +49,12 @@ fn main() {
             
             // 验证 package.json
             match package.validate() {
-                Ok(_) => println!("package.json 验证通过"),
+                Ok(report) => {
+                    println!("errors: {}", report.errors.len());
+                    println!("warnings: {}", report.warnings.len());
+                }
                 Err(e) => println!("package.json 验证失败: {}", e),
-            }
+            };
         }
         Err(e) => println!("解析 package.json 时出错: {}", e),
     }
@@ -61,7 +64,12 @@ fn main() {
 ### 验证示例
 
 ```rust
-use package_json_parser::PackageJsonParser;
+use package_json_parser::{
+    PackageJsonParser,
+    ValidationField,
+    ValidationOptions,
+    ValidationSeverity,
+};
 
 fn main() {
     // 验证有效的 package.json
@@ -81,7 +89,8 @@ fn main() {
     "#;
 
     let package = PackageJsonParser::parse_str(valid_json).unwrap();
-    assert!(package.validate().is_ok());
+    let report = package.validate().unwrap();
+    assert!(report.is_clean());
 
     // 验证无效的 package.json（JSON 语法合法，但字段不符合 package.json 规则）
     let invalid_json = r#"
@@ -93,15 +102,30 @@ fn main() {
     "#;
 
     let package = PackageJsonParser::parse_str(invalid_json).unwrap();
-    if let Err(e) = package.validate() {
-        println!("验证错误: {}", e);
-        // 输出类似:
-        // 验证错误: 包名不符合要求的正则规则
-        // 验证错误: version 字段格式非法
-        // 验证错误: bugs 不是合法 URL 或邮箱
-    }
+
+    // 1) 默认模式（宽松）：违规会进入 warnings
+    let report = package.validate().unwrap();
+    assert_eq!(report.errors.len(), 0);
+    assert!(report.warnings.len() >= 1);
+
+    // 2) 严格模式：违规会进入 errors
+    let report = package.validate_strict().unwrap();
+    assert!(report.has_errors());
+
+    // 3) 全局 + 字段覆盖：
+    //    全局 Warning，但 name 强制为 Error
+    let options = ValidationOptions::lenient()
+        .field(ValidationField::Name, ValidationSeverity::Error);
+    let report = package.validate_with(options).unwrap();
+    assert!(report.errors.iter().any(|issue| issue.field == ValidationField::Name));
 }
 ```
+
+### 迁移说明
+
+- `v0.0.16` 之前：`validate()` 返回 `Result<()>`，遇到首个违规即返回失败。
+- `v0.0.16` 起：`validate()` 返回 `Result<ValidationReport>`，默认是宽松模式。
+- 如果你需要“发现违规就阻断”，请使用 `validate_strict()` 并检查 `report.has_errors()`。
 
 ## 文档
 

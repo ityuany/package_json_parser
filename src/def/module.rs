@@ -14,7 +14,7 @@ use crate::ext::Validator;
 pub struct Module(String);
 
 impl Validator for Module {
-  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
-    Ok(())
+  fn validate(&self, _prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
+    vec![]
   }
 }

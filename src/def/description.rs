@@ -8,7 +8,7 @@ use crate::ext::Validator;
 pub struct Description(String);
 
 impl Validator for Description {
-  fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
-    Ok(())
+  fn validate(&self, _prop: Option<&ObjectProp>) -> Vec<crate::validation::RuleViolation> {
+    vec![]
   }
 }
