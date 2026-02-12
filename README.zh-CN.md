@@ -24,10 +24,22 @@ package_json_parser = "0.0.16"
 
 ## 使用方法
 
+### 核心模型
+
+- `parse_str` / `parse`：
+  - 负责把 JSON 解析为 `PackageJsonParser`。
+  - JSON 语法错误或读取失败会直接返回 `Err`（致命错误）。
+- `validate` / `validate_with`：
+  - 负责做 package.json 语义规则校验。
+  - 返回 `ValidationReport`（包含 `errors` + `warnings`）。
+  - 仅在致命异常（例如内部解析/状态异常）时返回 `Err`。
+
+### 快速开始
+
 ```rust
 use package_json_parser::PackageJsonParser;
 
-fn main() {
+fn main() -> package_json_parser::Result<()> {
     let json_str = r#"
     {
         "name": "my-package",
@@ -38,30 +50,17 @@ fn main() {
     }
     "#;
 
-    match PackageJsonParser::parse_str(json_str) {
-        Ok(package) => {
-            if let Some(name) = package.name.as_ref() {
-                println!("包名: {}", name.as_str());
-            }
-            if let Some(version) = package.version.as_ref() {
-                println!("版本: {}", version.as_str());
-            }
-            
-            // 验证 package.json
-            match package.validate() {
-                Ok(report) => {
-                    println!("errors: {}", report.errors.len());
-                    println!("warnings: {}", report.warnings.len());
-                }
-                Err(e) => println!("package.json 验证失败: {}", e),
-            };
-        }
-        Err(e) => println!("解析 package.json 时出错: {}", e),
-    }
+    let package = PackageJsonParser::parse_str(json_str)?;
+    let report = package.validate()?;
+
+    println!("errors: {}", report.errors.len());
+    println!("warnings: {}", report.warnings.len());
+
+    Ok(())
 }
 ```
 
-### 验证示例
+### 校验策略示例
 
 ```rust
 use package_json_parser::{
@@ -71,28 +70,7 @@ use package_json_parser::{
     ValidationSeverity,
 };
 
-fn main() {
-    // 验证有效的 package.json
-    let valid_json = r#"
-    {
-        "name": "my-package",
-        "version": "1.0.0",
-        "description": "A test package",
-        "main": "index.js",
-        "scripts": {
-            "test": "echo \"Error: no test specified\" && exit 1"
-        },
-        "keywords": ["test"],
-        "author": "Test User",
-        "license": "MIT"
-    }
-    "#;
-
-    let package = PackageJsonParser::parse_str(valid_json).unwrap();
-    let report = package.validate().unwrap();
-    assert!(report.is_clean());
-
-    // 验证无效的 package.json（JSON 语法合法，但字段不符合 package.json 规则）
+fn main() -> package_json_parser::Result<()> {
     let invalid_json = r#"
     {
         "name": "MyPackage",
@@ -100,32 +78,81 @@ fn main() {
         "bugs": "not-a-url-or-email"
     }
     "#;
+    let package = PackageJsonParser::parse_str(invalid_json)?;
 
-    let package = PackageJsonParser::parse_str(invalid_json).unwrap();
+    // 1) 默认策略：warning
+    let warning_report = package.validate()?;
+    assert_eq!(warning_report.errors.len(), 0);
+    assert!(!warning_report.warnings.is_empty());
 
-    // 1) 默认模式（宽松）：违规会进入 warnings
-    let report = package.validate().unwrap();
-    assert_eq!(report.errors.len(), 0);
-    assert!(report.warnings.len() >= 1);
+    // 2) 全局 error（适合 CI 阻断）
+    let error_report = package.validate_with(ValidationOptions::error())?;
+    assert!(error_report.has_errors());
 
-    // 2) 严格模式：违规会进入 errors
-    let report = package.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
-    assert!(report.has_errors());
-
-    // 3) 全局 + 字段覆盖：
-    //    全局 Warning，但 name 强制为 Error
+    // 3) 全局 + 字段覆盖
     let options = ValidationOptions::warning()
-        .with(ValidationField::Name, ValidationSeverity::Error);
-    let report = package.validate_with(options).unwrap();
-    assert!(report.errors.iter().any(|issue| issue.field == ValidationField::Name));
+        .with(ValidationField::Name, ValidationSeverity::Error)
+        .with(ValidationField::License, ValidationSeverity::Warning);
+    let mixed_report = package.validate_with(options)?;
+    assert!(mixed_report
+        .errors
+        .iter()
+        .any(|issue| issue.field == ValidationField::Name));
+
+    Ok(())
 }
 ```
 
-### 迁移说明
+### 如何消费 `ValidationReport`
 
-- `v0.0.16` 之前：`validate()` 返回 `Result<()>`，遇到首个违规即返回失败。
-- `v0.0.16` 起：`validate()` 返回 `Result<ValidationReport>`，默认是宽松模式。
-- 如果你需要“发现违规就阻断”，请使用 `validate_with(package_json_parser::ValidationOptions::error())` 并检查 `report.has_errors()`。
+```rust
+use package_json_parser::{PackageJsonParser, ValidationOptions};
+
+fn main() -> package_json_parser::Result<()> {
+    let package = PackageJsonParser::parse("package.json")?;
+    let report = package.validate_with(ValidationOptions::error())?;
+
+    for issue in &report.errors {
+        println!(
+            "[ERROR] field={:?} path={} message={}",
+            issue.field, issue.json_path, issue.message
+        );
+    }
+    for issue in &report.warnings {
+        println!(
+            "[WARN ] field={:?} path={} message={}",
+            issue.field, issue.json_path, issue.message
+        );
+    }
+
+    if report.has_errors() {
+        // 由调用方决定是否阻断流程（构建、发布、提交等）
+    }
+
+    Ok(())
+}
+```
+
+### 典型接入方式
+
+```rust
+use package_json_parser::{PackageJsonParser, ValidationOptions};
+
+fn has_blocking_issues_for_ci(path: &str) -> package_json_parser::Result<bool> {
+    let pkg = PackageJsonParser::parse(path)?;
+    let report = pkg.validate_with(ValidationOptions::error())?;
+    Ok(report.has_errors())
+}
+
+fn validate_for_local_dev(path: &str) -> package_json_parser::Result<()> {
+    let pkg = PackageJsonParser::parse(path)?;
+    let report = pkg.validate()?; // warning 策略
+    for w in &report.warnings {
+        eprintln!("[warn] {}: {}", w.json_path, w.message);
+    }
+    Ok(())
+}
+```
 
 ## 文档
 

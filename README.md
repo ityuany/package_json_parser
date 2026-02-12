@@ -24,10 +24,22 @@ package_json_parser = "0.0.16"
 
 ## Usage
 
+### Core Model
+
+- `parse_str` / `parse`:
+  - Parse JSON into `PackageJsonParser`.
+  - If parsing fails, return `Err` (fatal).
+- `validate` / `validate_with`:
+  - Run semantic package.json validation.
+  - Return `ValidationReport` (`errors` + `warnings`) when validation succeeds.
+  - Return `Err` only for fatal cases (for example parse/diagnostic internal failures).
+
+### Quick Start
+
 ```rust
 use package_json_parser::PackageJsonParser;
 
-fn main() {
+fn main() -> package_json_parser::Result<()> {
     let json_str = r#"
     {
         "name": "my-package",
@@ -38,30 +50,17 @@ fn main() {
     }
     "#;
 
-    match PackageJsonParser::parse_str(json_str) {
-        Ok(package) => {
-            if let Some(name) = package.name.as_ref() {
-                println!("Package name: {}", name.as_str());
-            }
-            if let Some(version) = package.version.as_ref() {
-                println!("Version: {}", version.as_str());
-            }
-            
-            // Validate package.json
-            match package.validate() {
-                Ok(report) => {
-                    println!("errors: {}", report.errors.len());
-                    println!("warnings: {}", report.warnings.len());
-                }
-                Err(e) => println!("package.json validation failed: {}", e),
-            };
-        }
-        Err(e) => println!("Error parsing package.json: {}", e),
-    }
+    let package = PackageJsonParser::parse_str(json_str)?;
+    let report = package.validate()?;
+
+    println!("errors: {}", report.errors.len());
+    println!("warnings: {}", report.warnings.len());
+
+    Ok(())
 }
 ```
 
-### Validation Examples
+### Validation Policies
 
 ```rust
 use package_json_parser::{
@@ -71,28 +70,7 @@ use package_json_parser::{
     ValidationSeverity,
 };
 
-fn main() {
-    // Validate a valid package.json
-    let valid_json = r#"
-    {
-        "name": "my-package",
-        "version": "1.0.0",
-        "description": "A test package",
-        "main": "index.js",
-        "scripts": {
-            "test": "echo \"Error: no test specified\" && exit 1"
-        },
-        "keywords": ["test"],
-        "author": "Test User",
-        "license": "MIT"
-    }
-    "#;
-
-    let package = PackageJsonParser::parse_str(valid_json).unwrap();
-    let report = package.validate().unwrap();
-    assert!(report.is_clean());
-
-    // Validate an invalid package.json (JSON is valid, but fields violate package.json rules)
+fn main() -> package_json_parser::Result<()> {
     let invalid_json = r#"
     {
         "name": "MyPackage",
@@ -100,32 +78,81 @@ fn main() {
         "bugs": "not-a-url-or-email"
     }
     "#;
+    let package = PackageJsonParser::parse_str(invalid_json)?;
 
-    let package = PackageJsonParser::parse_str(invalid_json).unwrap();
+    // 1) Default policy: warning mode
+    let warning_report = package.validate()?;
+    assert_eq!(warning_report.errors.len(), 0);
+    assert!(!warning_report.warnings.is_empty());
 
-    // 1) Default mode (lenient): violations are warnings
-    let report = package.validate().unwrap();
-    assert_eq!(report.errors.len(), 0);
-    assert!(report.warnings.len() >= 1);
+    // 2) Global error mode (suitable for CI blocking)
+    let error_report = package.validate_with(ValidationOptions::error())?;
+    assert!(error_report.has_errors());
 
-    // 2) Strict mode: violations become errors
-    let report = package.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
-    assert!(report.has_errors());
-
-    // 3) Global + field override:
-    //    global Warning, but `name` is forced to Error
+    // 3) Global + field override
     let options = ValidationOptions::warning()
-        .with(ValidationField::Name, ValidationSeverity::Error);
-    let report = package.validate_with(options).unwrap();
-    assert!(report.errors.iter().any(|issue| issue.field == ValidationField::Name));
+        .with(ValidationField::Name, ValidationSeverity::Error)
+        .with(ValidationField::License, ValidationSeverity::Warning);
+    let mixed_report = package.validate_with(options)?;
+    assert!(mixed_report
+        .errors
+        .iter()
+        .any(|issue| issue.field == ValidationField::Name));
+
+    Ok(())
 }
 ```
 
-### Migration Note
+### Consuming `ValidationReport`
 
-- Before `v0.0.16`: `validate()` returned `Result<()>` and failed on first violation.
-- Since `v0.0.16`: `validate()` returns `Result<ValidationReport>` and defaults to lenient mode.
-- To keep blocking behavior, use `validate_with(package_json_parser::ValidationOptions::error())` and check `report.has_errors()`.
+```rust
+use package_json_parser::{PackageJsonParser, ValidationOptions};
+
+fn main() -> package_json_parser::Result<()> {
+    let package = PackageJsonParser::parse("package.json")?;
+    let report = package.validate_with(ValidationOptions::error())?;
+
+    for issue in &report.errors {
+        println!(
+            "[ERROR] field={:?} path={} message={}",
+            issue.field, issue.json_path, issue.message
+        );
+    }
+    for issue in &report.warnings {
+        println!(
+            "[WARN ] field={:?} path={} message={}",
+            issue.field, issue.json_path, issue.message
+        );
+    }
+
+    if report.has_errors() {
+        // decide whether to block build/publish
+    }
+
+    Ok(())
+}
+```
+
+### Typical Integration Patterns
+
+```rust
+use package_json_parser::{PackageJsonParser, ValidationOptions};
+
+fn has_blocking_issues_for_ci(path: &str) -> package_json_parser::Result<bool> {
+    let pkg = PackageJsonParser::parse(path)?;
+    let report = pkg.validate_with(ValidationOptions::error())?;
+    Ok(report.has_errors())
+}
+
+fn validate_for_local_dev(path: &str) -> package_json_parser::Result<()> {
+    let pkg = PackageJsonParser::parse(path)?;
+    let report = pkg.validate()?; // warning policy
+    for w in &report.warnings {
+        eprintln!("[warn] {}: {}", w.json_path, w.message);
+    }
+    Ok(())
+}
+```
 
 ## Documentation
 
