@@ -151,11 +151,11 @@ impl PackageJsonParser {
   }
 
   pub fn validate(&self) -> Result<ValidationReport> {
-    self.validate_with(ValidationOptions::lenient())
+    self.validate_with(ValidationOptions::warning())
   }
 
   pub fn validate_strict(&self) -> Result<ValidationReport> {
-    self.validate_with(ValidationOptions::strict())
+    self.validate_with(ValidationOptions::error())
   }
 
   pub fn validate_with(&self, options: ValidationOptions) -> Result<ValidationReport> {

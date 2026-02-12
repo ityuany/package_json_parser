@@ -38,7 +38,7 @@ fn validate_strict_reports_errors() {
 fn field_override_takes_precedence_over_global_default() {
   let pkg = PackageJsonParser::parse_str(invalid_payload()).unwrap();
   let options =
-    ValidationOptions::lenient().field(ValidationField::Name, ValidationSeverity::Error);
+    ValidationOptions::warning().with(ValidationField::Name, ValidationSeverity::Error);
   let report = pkg.validate_with(options).unwrap();
 
   assert!(
@@ -60,7 +60,7 @@ fn strict_mode_can_downgrade_specific_field_to_warning() {
   let raw = r#"{ "license": "MIT1" }"#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
   let options =
-    ValidationOptions::strict().field(ValidationField::License, ValidationSeverity::Warning);
+    ValidationOptions::error().with(ValidationField::License, ValidationSeverity::Warning);
   let report = pkg.validate_with(options).unwrap();
 
   assert!(!report.has_errors());

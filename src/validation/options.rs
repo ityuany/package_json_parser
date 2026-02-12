@@ -10,7 +10,7 @@ pub struct ValidationOptions {
 
 impl Default for ValidationOptions {
   fn default() -> Self {
-    Self::lenient()
+    Self::warning()
   }
 }
 
@@ -19,14 +19,14 @@ impl ValidationOptions {
     Self::default()
   }
 
-  pub fn lenient() -> Self {
+  pub fn warning() -> Self {
     Self {
       default_severity: ValidationSeverity::Warning,
       field_overrides: HashMap::new(),
     }
   }
 
-  pub fn strict() -> Self {
+  pub fn error() -> Self {
     Self {
       default_severity: ValidationSeverity::Error,
       field_overrides: HashMap::new(),
@@ -38,7 +38,7 @@ impl ValidationOptions {
     self
   }
 
-  pub fn field(mut self, field: ValidationField, sev: ValidationSeverity) -> Self {
+  pub fn with(mut self, field: ValidationField, sev: ValidationSeverity) -> Self {
     self.field_overrides.insert(field, sev);
     self
   }

@@ -49,7 +49,7 @@ fn global_and_field_level_policy_override_works() {
   "#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
   let options =
-    ValidationOptions::lenient().field(ValidationField::Name, ValidationSeverity::Error);
+    ValidationOptions::warning().with(ValidationField::Name, ValidationSeverity::Error);
   let report = pkg.validate_with(options).unwrap();
 
   assert!(
@@ -76,7 +76,7 @@ fn strict_mode_can_downgrade_specific_field_to_warning() {
   "#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
   let options =
-    ValidationOptions::strict().field(ValidationField::License, ValidationSeverity::Warning);
+    ValidationOptions::error().with(ValidationField::License, ValidationSeverity::Warning);
   let report = pkg.validate_with(options).unwrap();
 
   assert!(
@@ -155,7 +155,7 @@ fn global_all_error_policy_marks_violations_as_errors() {
   let raw = r#"{ "name": "MyPackage", "version": "invalid-version" }"#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
   let report = pkg
-    .validate_with(ValidationOptions::lenient().all(ValidationSeverity::Error))
+    .validate_with(ValidationOptions::warning().all(ValidationSeverity::Error))
     .unwrap();
 
   assert!(report.has_errors());
@@ -166,9 +166,9 @@ fn global_all_error_policy_marks_violations_as_errors() {
 fn same_field_override_last_write_wins() {
   let raw = r#"{ "name": "MyPackage" }"#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let options = ValidationOptions::strict()
-    .field(ValidationField::Name, ValidationSeverity::Error)
-    .field(ValidationField::Name, ValidationSeverity::Warning);
+  let options = ValidationOptions::error()
+    .with(ValidationField::Name, ValidationSeverity::Error)
+    .with(ValidationField::Name, ValidationSeverity::Warning);
   let report = pkg.validate_with(options).unwrap();
 
   assert!(!report.has_errors());

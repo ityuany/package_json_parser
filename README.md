@@ -114,8 +114,8 @@ fn main() {
 
     // 3) Global + field override:
     //    global Warning, but `name` is forced to Error
-    let options = ValidationOptions::lenient()
-        .field(ValidationField::Name, ValidationSeverity::Error);
+    let options = ValidationOptions::warning()
+        .with(ValidationField::Name, ValidationSeverity::Error);
     let report = package.validate_with(options).unwrap();
     assert!(report.errors.iter().any(|issue| issue.field == ValidationField::Name));
 }
