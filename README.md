@@ -34,6 +34,20 @@ package_json_parser = "0.0.16"
   - Return `ValidationReport` (`errors` + `warnings`) when validation succeeds.
   - Return `Err` only for fatal cases (for example parse/diagnostic internal failures).
 
+### Pretty Fatal Error Output
+
+`PackageJsonError` now implements `miette::Diagnostic`, so callers can render fatal errors directly:
+
+```rust
+use package_json_parser::PackageJsonParser;
+
+fn main() {
+    if let Err(err) = PackageJsonParser::parse("package.json") {
+        eprintln!("{:?}", miette::Report::new(err));
+    }
+}
+```
+
 ### Quick Start
 
 ```rust

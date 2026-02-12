@@ -68,11 +68,13 @@ impl PackageJsonError {
       PackageJsonError::InternalState(_) => ErrorKind::InternalState,
     }
   }
+}
 
-  pub fn report(&self) -> Option<&miette::Report> {
+impl Diagnostic for PackageJsonError {
+  fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
     match self {
-      PackageJsonError::JsonParse(report) => Some(report),
-      PackageJsonError::Validation(report) => Some(report),
+      PackageJsonError::JsonParse(report) => Some(report.as_ref()),
+      PackageJsonError::Validation(report) => Some(report.as_ref()),
       _ => None,
     }
   }

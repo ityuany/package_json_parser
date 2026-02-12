@@ -34,6 +34,20 @@ package_json_parser = "0.0.16"
   - 返回 `ValidationReport`（包含 `errors` + `warnings`）。
   - 仅在致命异常（例如内部解析/状态异常）时返回 `Err`。
 
+### 致命错误的漂亮输出
+
+`PackageJsonError` 已实现 `miette::Diagnostic`，调用方可以直接渲染诊断信息：
+
+```rust
+use package_json_parser::PackageJsonParser;
+
+fn main() {
+    if let Err(err) = PackageJsonParser::parse("package.json") {
+        eprintln!("{:?}", miette::Report::new(err));
+    }
+}
+```
+
 ### 快速开始
 
 ```rust
