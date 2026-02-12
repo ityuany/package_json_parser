@@ -1,7 +1,7 @@
 pub use def::*;
 use miette::{MietteDiagnostic, Severity};
 
-use crate::err::JsonParseError;
+use crate::err::{JsonParseError, PackageJsonError};
 use crate::ext::Validator;
 use jsonc_parser::{CollectOptions, ParseOptions, parse_to_ast};
 pub use rustc_hash::FxHashMap;
@@ -11,8 +11,8 @@ use std::io::Read;
 use std::path::Path;
 use std::{fs::File, io::BufReader};
 
-pub use crate::err::ErrorKind;
-pub use miette::{LabeledSpan, NamedSource, Result, SourceSpan};
+pub use crate::err::{ErrorKind, Result};
+pub use miette::{LabeledSpan, NamedSource, SourceSpan};
 pub use validation::*;
 
 mod def;
@@ -134,14 +134,15 @@ pub struct PackageJsonParser {
 }
 
 impl PackageJsonParser {
-  fn raw_source(&self) -> miette::Result<&str> {
-    self
-      .__raw_source
-      .as_deref()
-      .ok_or_else(|| miette::miette!("raw source is not available, was this parsed correctly?"))
+  fn raw_source(&self) -> Result<&str> {
+    self.__raw_source.as_deref().ok_or_else(|| {
+      PackageJsonError::InternalState(
+        "raw source is not available, was this parsed correctly?".to_string(),
+      )
+    })
   }
 
-  fn with_source(&self, e: miette::Report) -> miette::Result<miette::Report> {
+  fn with_source(&self, e: miette::Report) -> Result<miette::Report> {
     let source = self.raw_source()?.to_string();
     if let Some(path) = self.__raw_path.as_ref() {
       return Ok(e.with_source_code(NamedSource::new(path, source)));
@@ -149,15 +150,15 @@ impl PackageJsonParser {
     Ok(e.with_source_code(source))
   }
 
-  pub fn validate(&self) -> miette::Result<ValidationReport> {
+  pub fn validate(&self) -> Result<ValidationReport> {
     self.validate_with(ValidationOptions::lenient())
   }
 
-  pub fn validate_strict(&self) -> miette::Result<ValidationReport> {
+  pub fn validate_strict(&self) -> Result<ValidationReport> {
     self.validate_with(ValidationOptions::strict())
   }
 
-  pub fn validate_with(&self, options: ValidationOptions) -> miette::Result<ValidationReport> {
+  pub fn validate_with(&self, options: ValidationOptions) -> Result<ValidationReport> {
     let Ok(parse_result) = parse_to_ast(
       self.raw_source()?,
       &CollectOptions::default(),
@@ -168,7 +169,7 @@ impl PackageJsonParser {
         .with_label(labeled_span)
         .with_severity(Severity::Error);
       let report = miette::miette!(diagnostic);
-      return Err(self.with_source(report)?);
+      return Err(PackageJsonError::Validation(self.with_source(report)?));
     };
 
     let root = parse_result.value.as_ref().and_then(|v| v.as_object());
@@ -254,23 +255,25 @@ impl PackageJsonParser {
   }
 
   pub fn parse_str(content: &str) -> Result<Self> {
-    let mut package_json_parser: PackageJsonParser = serde_json::from_str(content)
-      .map_err(|e| Self::build_parse_error(content.to_string(), content, e))?;
+    let mut package_json_parser: PackageJsonParser =
+      serde_json::from_str(content).map_err(|e| {
+        PackageJsonError::JsonParse(Self::build_parse_error(content.to_string(), content, e))
+      })?;
     package_json_parser.__raw_source = Some(content.to_string());
     Ok(package_json_parser)
   }
 
   pub fn parse<P: AsRef<Path>>(path: P) -> Result<Self> {
-    let file = File::open(path.as_ref()).map_err(ErrorKind::IoError)?;
+    let file = File::open(path.as_ref()).map_err(PackageJsonError::Io)?;
     let mut reader = BufReader::new(file);
     let mut content = String::new();
     reader
       .read_to_string(&mut content)
-      .map_err(ErrorKind::IoError)?;
+      .map_err(PackageJsonError::Io)?;
     let mut package_json_parser: PackageJsonParser =
       serde_json::from_str(&content).map_err(|e| {
         let src = NamedSource::new(path.as_ref().to_string_lossy(), content.clone());
-        Self::build_parse_error(src, &content, e)
+        PackageJsonError::JsonParse(Self::build_parse_error(src, &content, e))
       })?;
     package_json_parser.__raw_source = Some(content);
     package_json_parser.__raw_path = Some(path.as_ref().to_string_lossy().to_string());
@@ -279,17 +282,17 @@ impl PackageJsonParser {
 }
 
 impl TryFrom<&Path> for PackageJsonParser {
-  type Error = miette::ErrReport;
+  type Error = PackageJsonError;
 
-  fn try_from(value: &Path) -> Result<Self, Self::Error> {
+  fn try_from(value: &Path) -> std::result::Result<Self, Self::Error> {
     Self::parse(value)
   }
 }
 
 impl TryFrom<&str> for PackageJsonParser {
-  type Error = miette::ErrReport;
+  type Error = PackageJsonError;
 
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
+  fn try_from(value: &str) -> std::result::Result<Self, Self::Error> {
     Self::parse_str(value)
   }
 }
@@ -304,7 +307,7 @@ impl PackageJsonParser {
       Bin::String(v) => {
         let mut map = HashMap::default();
         let Some(name) = &self.name else {
-          return Err(miette::miette!(ErrorKind::NameRequired));
+          return Err(PackageJsonError::NameRequired);
         };
         let bin_name = name.get_bin_name();
         map.insert(bin_name.to_string(), v.to_string());

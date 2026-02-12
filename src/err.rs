@@ -26,21 +26,62 @@ where
   pub source: Option<serde_json::Error>,
 }
 
+#[allow(dead_code)]
 pub type JsonFileParseError = JsonParseError<NamedSource<String>>;
+#[allow(dead_code)]
 pub type JsonStrParseError = JsonParseError<String>;
 
-#[derive(Debug, Error, Diagnostic)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
+  NameRequired,
+  IoError,
+  JsonParse,
+  Validation,
+  InternalState,
+}
+
+#[derive(Debug, Error)]
+pub enum PackageJsonError {
   #[error("name is required")]
   NameRequired,
 
-  #[error(transparent)]
-  JsonFileParseError(JsonFileParseError),
+  #[error("I/O error")]
+  Io(#[source] std::io::Error),
 
-  #[error(transparent)]
-  JsonStrParseError(JsonStrParseError),
+  #[error("JSON parsing failed")]
+  JsonParse(miette::Report),
 
-  #[error("IO error")]
-  #[diagnostic(code(package_json::io_error), url(docsrs))]
-  IoError(#[from] std::io::Error),
+  #[error("validation failed")]
+  Validation(miette::Report),
+
+  #[error("internal state error: {0}")]
+  InternalState(String),
 }
+
+impl PackageJsonError {
+  pub fn kind(&self) -> ErrorKind {
+    match self {
+      PackageJsonError::NameRequired => ErrorKind::NameRequired,
+      PackageJsonError::Io(_) => ErrorKind::IoError,
+      PackageJsonError::JsonParse(_) => ErrorKind::JsonParse,
+      PackageJsonError::Validation(_) => ErrorKind::Validation,
+      PackageJsonError::InternalState(_) => ErrorKind::InternalState,
+    }
+  }
+
+  pub fn report(&self) -> Option<&miette::Report> {
+    match self {
+      PackageJsonError::JsonParse(report) => Some(report),
+      PackageJsonError::Validation(report) => Some(report),
+      _ => None,
+    }
+  }
+}
+
+impl From<std::io::Error> for PackageJsonError {
+  fn from(value: std::io::Error) -> Self {
+    Self::Io(value)
+  }
+}
+
+pub type Result<T> = std::result::Result<T, PackageJsonError>;
