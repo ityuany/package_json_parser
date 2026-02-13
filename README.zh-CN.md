@@ -28,11 +28,12 @@ package_json_parser = "0.0.16"
 
 - `parse_str` / `parse`：
   - 负责把 JSON 解析为 `PackageJsonParser`。
-  - JSON 语法错误或读取失败会直接返回 `Err`（致命错误）。
-- `validate` / `validate_with`：
-  - 负责做 package.json 语义规则校验。
-  - 返回 `ValidationReport`（包含 `errors` + `warnings`）。
-  - 仅在致命异常（例如内部解析/状态异常）时返回 `Err`。
+  - 仅在致命错误（IO / JSON 语法）时返回 `Err`。
+- `validate`：
+  - 一次性收集全部问题并返回 `ValidationReport`。
+  - 当前版本固定为 `Error` 模型，不支持策略切换。
+- `get_xxx`：
+  - 返回 `FieldResult<T> { value, issues }`，用于业务读取路径。
 
 ### 致命错误的漂亮输出
 
@@ -74,15 +75,10 @@ fn main() -> package_json_parser::Result<()> {
 }
 ```
 
-### 校验策略示例
+### 校验示例
 
 ```rust
-use package_json_parser::{
-    PackageJsonParser,
-    ValidationField,
-    ValidationOptions,
-    ValidationSeverity,
-};
+use package_json_parser::PackageJsonParser;
 
 fn main() -> package_json_parser::Result<()> {
     let invalid_json = r#"
@@ -94,24 +90,9 @@ fn main() -> package_json_parser::Result<()> {
     "#;
     let package = PackageJsonParser::parse_str(invalid_json)?;
 
-    // 1) 默认策略：warning
-    let warning_report = package.validate()?;
-    assert_eq!(warning_report.errors.len(), 0);
-    assert!(!warning_report.warnings.is_empty());
-
-    // 2) 全局 error（适合 CI 阻断）
-    let error_report = package.validate_with(ValidationOptions::error())?;
-    assert!(error_report.has_errors());
-
-    // 3) 全局 + 字段覆盖
-    let options = ValidationOptions::warning()
-        .with(ValidationField::Name, ValidationSeverity::Error)
-        .with(ValidationField::License, ValidationSeverity::Warning);
-    let mixed_report = package.validate_with(options)?;
-    assert!(mixed_report
-        .errors
-        .iter()
-        .any(|issue| issue.field == ValidationField::Name));
+    let report = package.validate()?;
+    assert!(report.has_errors());
+    assert!(report.warnings.is_empty());
 
     Ok(())
 }
@@ -120,11 +101,11 @@ fn main() -> package_json_parser::Result<()> {
 ### 如何消费 `ValidationReport`
 
 ```rust
-use package_json_parser::{PackageJsonParser, ValidationOptions};
+use package_json_parser::PackageJsonParser;
 
 fn main() -> package_json_parser::Result<()> {
     let package = PackageJsonParser::parse("package.json")?;
-    let report = package.validate_with(ValidationOptions::error())?;
+    let report = package.validate()?;
 
     for issue in &report.errors {
         println!(
@@ -132,13 +113,6 @@ fn main() -> package_json_parser::Result<()> {
             issue.field, issue.json_path, issue.message
         );
     }
-    for issue in &report.warnings {
-        println!(
-            "[WARN ] field={:?} path={} message={}",
-            issue.field, issue.json_path, issue.message
-        );
-    }
-
     if report.has_errors() {
         // 由调用方决定是否阻断流程（构建、发布、提交等）
     }
@@ -150,20 +124,36 @@ fn main() -> package_json_parser::Result<()> {
 ### 典型接入方式
 
 ```rust
-use package_json_parser::{PackageJsonParser, ValidationOptions};
+use package_json_parser::PackageJsonParser;
 
 fn has_blocking_issues_for_ci(path: &str) -> package_json_parser::Result<bool> {
     let pkg = PackageJsonParser::parse(path)?;
-    let report = pkg.validate_with(ValidationOptions::error())?;
+    let report = pkg.validate()?;
     Ok(report.has_errors())
 }
 
 fn validate_for_local_dev(path: &str) -> package_json_parser::Result<()> {
     let pkg = PackageJsonParser::parse(path)?;
-    let report = pkg.validate()?; // warning 策略
-    for w in &report.warnings {
-        eprintln!("[warn] {}: {}", w.json_path, w.message);
+    let report = pkg.validate()?;
+    for e in &report.errors {
+        eprintln!("[error] {}: {}", e.json_path, e.message);
     }
+    Ok(())
+}
+```
+
+### 字段读取
+
+```rust
+use package_json_parser::PackageJsonParser;
+
+fn main() -> package_json_parser::Result<()> {
+    let pkg = PackageJsonParser::parse_str(r#"{ "main": 123 }"#)?;
+    let main = pkg.get_main();
+
+    assert!(main.value.is_none());
+    assert!(main.has_errors());
+
     Ok(())
 }
 ```

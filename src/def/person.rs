@@ -1,11 +1,12 @@
 use jsonc_parser::ast::ObjectProp;
-use serde::{Deserialize, Serialize};
+use serde::de::{self, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt;
 use validator::{ValidateEmail, ValidateUrl};
 
 use crate::ext::{Validator, validation_error, value_range};
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
-#[serde(untagged)]
+#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
 pub enum Person {
   String(String),
   Object(PersonObject),
@@ -16,6 +17,49 @@ pub struct PersonObject {
   pub name: String,
   pub email: Option<String>,
   pub url: Option<String>,
+}
+
+impl<'de> Deserialize<'de> for Person {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    struct PersonVisitor;
+
+    impl<'de> Visitor<'de> for PersonVisitor {
+      type Value = Person;
+
+      fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str(
+          "a string or object `{ \"name\": string, \"email\"?: string, \"url\"?: string }`",
+        )
+      }
+
+      fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+      where
+        E: de::Error,
+      {
+        Ok(Person::String(value.to_string()))
+      }
+
+      fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+      where
+        E: de::Error,
+      {
+        Ok(Person::String(value))
+      }
+
+      fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+      where
+        A: MapAccess<'de>,
+      {
+        let person = PersonObject::deserialize(serde::de::value::MapAccessDeserializer::new(map))?;
+        Ok(Person::Object(person))
+      }
+    }
+
+    deserializer.deserialize_any(PersonVisitor)
+  }
 }
 
 impl Validator for Person {
@@ -91,8 +135,11 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_ok());
+      let report = res.validate().unwrap();
+      assert!(!report.has_errors());
+      let author = res.get_author();
+      assert!(author.value.is_some());
+      assert!(!author.has_errors());
     }
   }
 
@@ -108,7 +155,7 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let report = res.validate_with(crate::ValidationOptions::error()).unwrap();
+      let report = res.validate().unwrap();
       assert!(report.has_errors());
     }
   }

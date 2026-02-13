@@ -1,5 +1,7 @@
 use jsonc_parser::ast::ObjectProp;
-use serde::{Deserialize, Serialize};
+use serde::de::{self, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt;
 use validator::{ValidateEmail, ValidateUrl};
 
 use crate::ext::{Validator, validation_error, value_range};
@@ -13,11 +15,53 @@ pub struct BugsItem {
   pub email: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub enum Bugs {
   UrlOrEmail(String),
   BugsItem(BugsItem),
+}
+
+impl<'de> Deserialize<'de> for Bugs {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    struct BugsVisitor;
+
+    impl<'de> Visitor<'de> for BugsVisitor {
+      type Value = Bugs;
+
+      fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str(
+          "a string (url/email) or object `{ \"url\"?: string, \"email\"?: string }` for `bugs`",
+        )
+      }
+
+      fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+      where
+        E: de::Error,
+      {
+        Ok(Bugs::UrlOrEmail(value.to_string()))
+      }
+
+      fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+      where
+        E: de::Error,
+      {
+        Ok(Bugs::UrlOrEmail(value))
+      }
+
+      fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+      where
+        A: MapAccess<'de>,
+      {
+        let item = BugsItem::deserialize(serde::de::value::MapAccessDeserializer::new(map))?;
+        Ok(Bugs::BugsItem(item))
+      }
+    }
+
+    deserializer.deserialize_any(BugsVisitor)
+  }
 }
 
 impl Validator for Bugs {
@@ -94,8 +138,11 @@ mod tests {
     ];
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_ok());
+      let report = res.validate().unwrap();
+      assert!(!report.has_errors());
+      let bugs = res.get_bugs();
+      assert!(bugs.value.is_some());
+      assert!(!bugs.has_errors());
     }
   }
 
@@ -109,7 +156,7 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let report = res.validate_with(crate::ValidationOptions::error()).unwrap();
+      let report = res.validate().unwrap();
       assert!(report.has_errors());
     }
   }

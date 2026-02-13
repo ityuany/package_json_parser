@@ -14,6 +14,15 @@ impl ValidationReport {
     }
   }
 
+  pub fn push_many<I>(&mut self, issues: I)
+  where
+    I: IntoIterator<Item = ValidationIssue>,
+  {
+    for issue in issues {
+      self.push(issue);
+    }
+  }
+
   pub fn has_errors(&self) -> bool {
     !self.errors.is_empty()
   }

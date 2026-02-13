@@ -18,9 +18,11 @@ fn should_pass_when_bugs_is_valid_url() {
       Some(Bugs::UrlOrEmail("https://test.com".to_string()))
     );
 
-    let res = package_json_parser.validate();
-
-    assert!(res.is_ok());
+    let report = package_json_parser.validate().unwrap();
+    assert!(!report.has_errors());
+    let bugs = package_json_parser.get_bugs();
+    assert!(bugs.value.is_some());
+    assert!(!bugs.has_errors());
   }
 }
 
@@ -42,9 +44,11 @@ fn should_pass_when_bugs_is_valid_email() {
       Some(Bugs::UrlOrEmail("test@example.com".to_string()))
     );
 
-    let res = package_json_parser.validate();
-
-    assert!(res.is_ok());
+    let report = package_json_parser.validate().unwrap();
+    assert!(!report.has_errors());
+    let bugs = package_json_parser.get_bugs();
+    assert!(bugs.value.is_some());
+    assert!(!bugs.has_errors());
   }
 }
 
@@ -64,8 +68,11 @@ fn should_pass_when_bugs_is_valid_object() {
   assert!(res.is_ok());
 
   if let Ok(package_json_parser) = res {
-    let res = package_json_parser.validate();
-    assert!(res.is_ok());
+    let report = package_json_parser.validate().unwrap();
+    assert!(!report.has_errors());
+    let bugs = package_json_parser.get_bugs();
+    assert!(bugs.value.is_some());
+    assert!(!bugs.has_errors());
   }
 }
 
@@ -80,7 +87,7 @@ fn should_fail_when_bugs_is_invalid() {
   let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
-    assert!(package_json_parser.validate_with(package_json_parser::ValidationOptions::error()).unwrap().has_errors());
+    assert!(package_json_parser.validate().unwrap().has_errors());
   }
 }
 
@@ -98,7 +105,7 @@ fn should_fail_when_bugs_object_is_invalid() {
   let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
-    let report = package_json_parser.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
+    let report = package_json_parser.validate().unwrap();
     assert!(report.has_errors());
   }
 }

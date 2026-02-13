@@ -89,8 +89,11 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let res = res.validate();
-      assert!(res.is_ok());
+      let report = res.validate().unwrap();
+      assert!(!report.has_errors());
+      let publish_config = res.get_publish_config();
+      assert!(publish_config.value.is_some());
+      assert!(!publish_config.has_errors());
     }
   }
 
@@ -104,7 +107,7 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json).unwrap();
-      let report = res.validate_with(crate::ValidationOptions::error()).unwrap();
+      let report = res.validate().unwrap();
       assert!(report.has_errors());
     }
   }

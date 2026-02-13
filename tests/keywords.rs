@@ -3,27 +3,40 @@ use package_json_parser::PackageJsonParser;
 #[test]
 fn should_pass_when_keywords_is_valid() {
   let raw = [
-    r#"
+    (
+      r#"
         {
             "keywords": "test"
         }
     "#,
-    r#"
+      0,
+    ),
+    (
+      r#"
         {
             "keywords": ["test", "test2"]
         }
     "#,
+      1,
+    ),
   ];
 
-  for raw in raw {
+  for (raw, expected_case) in raw {
     let res = PackageJsonParser::parse_str(raw);
 
     assert!(res.is_ok());
 
     if let Ok(package_json_parser) = res {
-      let res = package_json_parser.validate();
-
-      assert!(res.is_ok());
+      let report = package_json_parser.validate().unwrap();
+      assert!(!report.has_errors());
+      let keywords = package_json_parser.get_keywords();
+      let text = format!("{:?}", keywords.value);
+      match expected_case {
+        0 => assert!(text.contains("String(\"test\")")),
+        1 => assert!(text.contains("Array([\"test\", \"test2\"])")),
+        _ => unreachable!(),
+      }
+      assert!(!keywords.has_errors());
     }
   }
 }
@@ -39,6 +52,6 @@ fn should_fail_when_keywords_is_invalid() {
   let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
-    assert!(package_json_parser.validate_with(package_json_parser::ValidationOptions::error()).unwrap().has_errors());
+    assert!(package_json_parser.validate().unwrap().has_errors());
   }
 }

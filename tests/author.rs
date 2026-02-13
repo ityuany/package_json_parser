@@ -18,9 +18,8 @@ fn should_pass_when_author_is_valid() {
       Some(Person::String("test".to_string()))
     );
 
-    let res = package_json_parser.validate();
-
-    assert!(res.is_ok());
+    let report = package_json_parser.validate().unwrap();
+    assert!(!report.has_errors());
   }
 }
 
@@ -48,9 +47,8 @@ fn should_pass_when_author_object_is_valid() {
       }))
     );
 
-    let res = package_json_parser.validate();
-
-    assert!(res.is_ok());
+    let report = package_json_parser.validate().unwrap();
+    assert!(!report.has_errors());
   }
 }
 
@@ -68,6 +66,6 @@ fn should_fail_when_author_object_is_invalid() {
   let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
-    assert!(package_json_parser.validate_with(package_json_parser::ValidationOptions::error()).unwrap().has_errors());
+    assert!(package_json_parser.validate().unwrap().has_errors());
   }
 }

@@ -12,9 +12,11 @@ fn should_pass_when_name_is_valid() {
   assert!(res.is_ok());
 
   if let Ok(package_json_parser) = res {
-    let res = package_json_parser.validate();
-
-    assert!(res.is_ok());
+    let report = package_json_parser.validate().unwrap();
+    assert!(!report.has_errors());
+    let name = package_json_parser.get_name();
+    assert_eq!(name.value.as_ref().map(|v| v.as_str()), Some("test"));
+    assert!(!name.has_errors());
   }
 }
 
@@ -28,6 +30,6 @@ fn should_fail_when_name_is_invalid() {
   let res = PackageJsonParser::parse_str(raw);
 
   if let Ok(package_json_parser) = res {
-    assert!(package_json_parser.validate_with(package_json_parser::ValidationOptions::error()).unwrap().has_errors());
+    assert!(package_json_parser.validate().unwrap().has_errors());
   }
 }

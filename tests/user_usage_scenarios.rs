@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use package_json_parser::{
-  ErrorKind, PackageJsonParser, ValidationField, ValidationOptions, ValidationSeverity,
-};
+use package_json_parser::{ErrorKind, PackageJsonParser, ValidationField};
 
 #[test]
 fn parse_only_then_read_fields_without_validate() {
@@ -20,7 +18,7 @@ fn parse_only_then_read_fields_without_validate() {
 }
 
 #[test]
-fn lenient_and_strict_validation_have_different_behavior() {
+fn validate_reports_all_errors() {
   let raw = r#"
   {
     "name": "MyPackage",
@@ -30,67 +28,21 @@ fn lenient_and_strict_validation_have_different_behavior() {
   "#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
 
-  let lenient = pkg.validate().unwrap();
-  assert!(!lenient.has_errors());
-  assert!(lenient.warnings.len() >= 3);
-
-  let strict = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
-  assert!(strict.has_errors());
-  assert!(strict.errors.len() >= 3);
+  let report = pkg.validate().unwrap();
+  assert!(report.has_errors());
+  assert!(report.warnings.is_empty());
+  assert!(report.errors.len() >= 3);
 }
 
 #[test]
-fn global_and_field_level_policy_override_works() {
-  let raw = r#"
-  {
-    "name": "MyPackage",
-    "version": "invalid-version"
-  }
-  "#;
+fn field_getter_returns_value_and_issues() {
+  let raw = r#"{ "main": 123 }"#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let options =
-    ValidationOptions::warning().with(ValidationField::Name, ValidationSeverity::Error);
-  let report = pkg.validate_with(options).unwrap();
 
-  assert!(
-    report
-      .errors
-      .iter()
-      .any(|issue| issue.field == ValidationField::Name)
-  );
-  assert!(
-    report
-      .warnings
-      .iter()
-      .any(|issue| issue.field == ValidationField::Version)
-  );
-}
-
-#[test]
-fn strict_mode_can_downgrade_specific_field_to_warning() {
-  let raw = r#"
-  {
-    "name": "MyPackage",
-    "license": "MIT1"
-  }
-  "#;
-  let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let options =
-    ValidationOptions::error().with(ValidationField::License, ValidationSeverity::Warning);
-  let report = pkg.validate_with(options).unwrap();
-
-  assert!(
-    report
-      .errors
-      .iter()
-      .any(|issue| issue.field == ValidationField::Name)
-  );
-  assert!(
-    report
-      .warnings
-      .iter()
-      .any(|issue| issue.field == ValidationField::License)
-  );
+  let main = pkg.get_main();
+  assert!(main.value.is_none());
+  assert!(main.has_errors());
+  assert!(main.issues.iter().any(|i| i.field == ValidationField::Main));
 }
 
 #[test]
@@ -101,7 +53,7 @@ fn nested_paths_are_visible_in_issues() {
   }
   "#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
+  let report = pkg.validate().unwrap();
 
   assert!(
     report
@@ -126,8 +78,7 @@ fn parse_from_file_scenario() {
   let pkg = PackageJsonParser::parse(path).unwrap();
   let report = pkg.validate().unwrap();
 
-  assert!(!report.has_errors());
-  assert!(!report.warnings.is_empty());
+  assert!(report.has_errors());
 }
 
 #[test]
@@ -151,36 +102,10 @@ fn bin_string_with_scoped_name_maps_to_unscoped_bin_name() {
 }
 
 #[test]
-fn global_all_error_policy_marks_violations_as_errors() {
-  let raw = r#"{ "name": "MyPackage", "version": "invalid-version" }"#;
-  let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let report = pkg
-    .validate_with(ValidationOptions::warning().all(ValidationSeverity::Error))
-    .unwrap();
-
-  assert!(report.has_errors());
-  assert!(report.warnings.is_empty());
-}
-
-#[test]
-fn same_field_override_last_write_wins() {
-  let raw = r#"{ "name": "MyPackage" }"#;
-  let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let options = ValidationOptions::error()
-    .with(ValidationField::Name, ValidationSeverity::Error)
-    .with(ValidationField::Name, ValidationSeverity::Warning);
-  let report = pkg.validate_with(options).unwrap();
-
-  assert!(!report.has_errors());
-  assert_eq!(report.warnings.len(), 1);
-  assert_eq!(report.warnings[0].field, ValidationField::Name);
-}
-
-#[test]
 fn validation_report_helpers_are_consistent() {
   let raw = r#"{ "name": "MyPackage", "version": "invalid-version" }"#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
+  let report = pkg.validate().unwrap();
 
   assert!(report.has_errors());
   assert!(!report.is_clean());
@@ -194,7 +119,7 @@ fn validation_report_helpers_are_consistent() {
 fn collect_all_keeps_multiple_issues_for_same_field() {
   let raw = r#"{ "bugs": { "url": "invalid", "email": "invalid" } }"#;
   let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
+  let report = pkg.validate().unwrap();
 
   let bugs_issues = report
     .errors
@@ -202,20 +127,6 @@ fn collect_all_keeps_multiple_issues_for_same_field() {
     .filter(|issue| issue.field == ValidationField::Bugs)
     .count();
   assert_eq!(bugs_issues, 2);
-}
-
-#[test]
-fn top_level_issue_uses_top_level_json_path() {
-  let raw = r#"{ "version": "invalid-version" }"#;
-  let pkg = PackageJsonParser::parse_str(raw).unwrap();
-  let report = pkg.validate_with(package_json_parser::ValidationOptions::error()).unwrap();
-
-  assert!(
-    report
-      .errors
-      .iter()
-      .any(|issue| issue.json_path == "version")
-  );
 }
 
 #[test]

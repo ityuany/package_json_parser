@@ -10,6 +10,12 @@ pub enum ValidationSeverity {
   Warning,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ValidationIssueKind {
+  TypeMismatch,
+  SemanticViolation,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RuleViolation {
   pub code: Option<String>,
@@ -40,6 +46,7 @@ impl RuleViolation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationIssue {
   pub field: ValidationField,
+  pub kind: ValidationIssueKind,
   pub severity: ValidationSeverity,
   pub code: Option<String>,
   pub message: String,
@@ -56,6 +63,7 @@ impl ValidationIssue {
   ) -> Self {
     Self {
       field,
+      kind: ValidationIssueKind::SemanticViolation,
       severity,
       code: violation.code,
       message: violation.message,
@@ -66,6 +74,25 @@ impl ValidationIssue {
         format!("{}.{}", field.json_key(), violation.path)
       },
       span: violation.span,
+    }
+  }
+
+  pub fn type_mismatch(
+    field: ValidationField,
+    severity: ValidationSeverity,
+    message: String,
+    help: Option<String>,
+    span: Option<Range<usize>>,
+  ) -> Self {
+    Self {
+      field,
+      kind: ValidationIssueKind::TypeMismatch,
+      severity,
+      code: Some("type_mismatch".to_string()),
+      message,
+      help,
+      json_path: field.json_key().to_string(),
+      span,
     }
   }
 
