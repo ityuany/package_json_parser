@@ -263,8 +263,9 @@ mod tests {
       }
     "#,
     );
-    println!("{:?}", parsed);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]

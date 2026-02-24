@@ -70,7 +70,9 @@ mod tests {
   #[test]
   fn should_fail_deserialize_main_when_type_is_invalid() {
     let parsed = PackageJsonParser::parse_str(r#"{"main":123}"#);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]

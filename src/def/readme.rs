@@ -168,13 +168,17 @@ mod tests {
   #[test]
   fn should_fail_deserialize_readme_when_field_type_is_invalid() {
     let parsed = PackageJsonParser::parse_str(r#"{"readme":{ "type": true, "value": "README" }}"#);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]
   fn should_fail_deserialize_readme_content_when_required_field_is_missing() {
     let parsed = PackageJsonParser::parse_str(r#"{"readme":{ "type": "text" }}"#);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]

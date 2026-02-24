@@ -247,13 +247,17 @@ mod tests {
   #[test]
   fn should_fail_deserialize_repository_when_field_type_is_invalid() {
     let parsed = PackageJsonParser::parse_str(r#"{"repository":{ "url": true }}"#);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]
   fn should_fail_deserialize_repository_or_string_when_type_is_invalid() {
     let parsed = PackageJsonParser::parse_str(r#"{"repository":123}"#);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]

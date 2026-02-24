@@ -61,7 +61,9 @@ mod tests {
   #[test]
   fn should_fail_deserialize_types_when_type_is_invalid() {
     let parsed = PackageJsonParser::parse_str(r#"{"types":false}"#);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]

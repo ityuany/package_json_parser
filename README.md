@@ -40,10 +40,10 @@ fn main() {
 
     match PackageJsonParser::parse_str(json_str) {
         Ok(package) => {
-            if let Some(name) = package.name.as_ref() {
+            if let Ok(Some(name)) = package.name() {
                 println!("Package name: {}", name.as_str());
             }
-            if let Some(version) = package.version.as_ref() {
+            if let Ok(Some(version)) = package.version() {
                 println!("Version: {}", version.as_str());
             }
             

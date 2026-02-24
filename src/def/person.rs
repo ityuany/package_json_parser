@@ -278,7 +278,9 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json);
-      assert!(res.is_err());
+      assert!(res.is_ok());
+      let res = res.unwrap();
+      assert!(res.validate().is_err());
     }
   }
 
@@ -291,7 +293,9 @@ mod tests {
   #[test]
   fn should_fail_deserialize_person_object_when_required_field_is_missing() {
     let parsed = PackageJsonParser::parse_str(r#"{"author":{ "email": "a@b.com" }}"#);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]

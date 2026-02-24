@@ -56,7 +56,9 @@ mod tests {
   #[test]
   fn should_fail_deserialize_maintainers_when_type_is_invalid() {
     let parsed = PackageJsonParser::parse_str(r#"{"maintainers":{"name":"alice"}}"#);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]

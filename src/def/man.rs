@@ -55,7 +55,9 @@ mod tests {
   #[test]
   fn should_fail_deserialize_man_when_type_is_invalid() {
     let parsed = PackageJsonParser::parse_str(r#"{"man":"man1"}"#);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]

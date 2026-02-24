@@ -237,7 +237,9 @@ mod tests {
   #[test]
   fn should_fail_deserialize_publish_config_when_field_type_is_invalid() {
     let parsed = PackageJsonParser::parse_str(r#"{"publishConfig":{ "provenance": "true" }}"#);
-    assert!(parsed.is_err());
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.validate().is_err());
   }
 
   #[test]
