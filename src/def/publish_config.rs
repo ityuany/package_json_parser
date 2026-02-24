@@ -1,10 +1,12 @@
 use jsonc_parser::ast::ObjectProp;
-use serde::{Deserialize, Serialize};
+use serde::de::{self, IgnoredAny, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt;
 use validator::ValidateUrl;
 
 use crate::ext::{Validator, validation_error, value_range};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct PublishConfig {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub access: Option<String>,
@@ -14,6 +16,124 @@ pub struct PublishConfig {
   pub tag: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub provenance: Option<bool>,
+}
+
+impl<'de> Deserialize<'de> for PublishConfig {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    const FIELDS: &[&str] = &["access", "registry", "tag", "provenance"];
+
+    enum Field {
+      Access,
+      Registry,
+      Tag,
+      Provenance,
+      Ignore,
+    }
+
+    impl<'de> Deserialize<'de> for Field {
+      fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+      where
+        D: Deserializer<'de>,
+      {
+        struct FieldVisitor;
+
+        impl<'de> Visitor<'de> for FieldVisitor {
+          type Value = Field;
+
+          fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("a publishConfig field")
+          }
+
+          fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+          where
+            E: de::Error,
+          {
+            Ok(match value {
+              "access" => Field::Access,
+              "registry" => Field::Registry,
+              "tag" => Field::Tag,
+              "provenance" => Field::Provenance,
+              _ => Field::Ignore,
+            })
+          }
+        }
+
+        deserializer.deserialize_identifier(FieldVisitor)
+      }
+    }
+
+    struct PublishConfigVisitor;
+
+    impl<'de> Visitor<'de> for PublishConfigVisitor {
+      type Value = PublishConfig;
+
+      fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("an object for publishConfig")
+      }
+
+      fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+      where
+        M: MapAccess<'de>,
+      {
+        let mut access = None;
+        let mut registry = None;
+        let mut tag = None;
+        let mut provenance = None;
+        let mut seen_access = false;
+        let mut seen_registry = false;
+        let mut seen_tag = false;
+        let mut seen_provenance = false;
+
+        while let Some(key) = map.next_key::<Field>()? {
+          match key {
+            Field::Access => {
+              if seen_access {
+                return Err(de::Error::duplicate_field("access"));
+              }
+              access = map.next_value()?;
+              seen_access = true;
+            }
+            Field::Registry => {
+              if seen_registry {
+                return Err(de::Error::duplicate_field("registry"));
+              }
+              registry = map.next_value()?;
+              seen_registry = true;
+            }
+            Field::Tag => {
+              if seen_tag {
+                return Err(de::Error::duplicate_field("tag"));
+              }
+              tag = map.next_value()?;
+              seen_tag = true;
+            }
+            Field::Provenance => {
+              if seen_provenance {
+                return Err(de::Error::duplicate_field("provenance"));
+              }
+              provenance = map.next_value()?;
+              seen_provenance = true;
+            }
+            Field::Ignore => {
+              let _: IgnoredAny = map.next_value()?;
+            }
+          }
+        }
+
+        Ok(PublishConfig {
+          access,
+          registry,
+          tag,
+          provenance,
+        })
+      }
+    }
+
+    deserializer.deserialize_struct("PublishConfig", FIELDS, PublishConfigVisitor)
+  }
 }
 
 impl Validator for PublishConfig {
