@@ -45,21 +45,15 @@ impl Validator for EngineStrict {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "engineStrict";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_deserialize_engine_strict_successfully() {
-    let parsed = parse_field("true");
+    let parsed = PackageJsonParser::parse_str(r#"{"engineStrict":true}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_engine_strict_when_type_is_invalid() {
-    let parsed = parse_field(r#""true""#);
+    let parsed = PackageJsonParser::parse_str(r#"{"engineStrict":"true"}"#);
     assert!(parsed.is_err());
   }
 

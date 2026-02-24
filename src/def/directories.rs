@@ -173,21 +173,15 @@ impl Validator for Directories {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "directories";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_deserialize_directories_successfully() {
-    let parsed = parse_field(r#"{ "bin": "bin", "lib": "lib" }"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"directories":{ "bin": "bin", "lib": "lib" }}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_directories_when_field_type_is_invalid() {
-    let parsed = parse_field(r#"{ "bin": true }"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"directories":{ "bin": true }}"#);
     assert!(parsed.is_err());
   }
 

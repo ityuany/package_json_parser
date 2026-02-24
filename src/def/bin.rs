@@ -63,21 +63,15 @@ impl Validator for Bin {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "bin";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_deserialize_bin_successfully() {
-    let parsed = parse_field(r#""cli.js""#);
+    let parsed = PackageJsonParser::parse_str(r#"{"bin":"cli.js"}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_bin_when_type_is_invalid() {
-    let parsed = parse_field("123");
+    let parsed = PackageJsonParser::parse_str(r#"{"bin":123}"#);
     assert!(parsed.is_err());
   }
 

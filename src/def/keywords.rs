@@ -61,21 +61,15 @@ impl Validator for Keywords {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "keywords";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_deserialize_keywords_successfully() {
-    let parsed = parse_field(r#"["rust","parser"]"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"keywords":["rust","parser"]}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_keywords_when_type_is_invalid() {
-    let parsed = parse_field("123");
+    let parsed = PackageJsonParser::parse_str(r#"{"keywords":123}"#);
     assert!(parsed.is_err());
   }
 

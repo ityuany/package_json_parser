@@ -208,12 +208,6 @@ impl Validator for RepositoryOrString {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "repository";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_pass_validate_repository() {
     let jsones = [
@@ -244,19 +238,21 @@ mod tests {
 
   #[test]
   fn should_deserialize_repository_successfully() {
-    let parsed = parse_field(r#"{ "type": "git", "url": "https://example.com" }"#);
+    let parsed = PackageJsonParser::parse_str(
+      r#"{"repository":{ "type": "git", "url": "https://example.com" }}"#,
+    );
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_repository_when_field_type_is_invalid() {
-    let parsed = parse_field(r#"{ "url": true }"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"repository":{ "url": true }}"#);
     assert!(parsed.is_err());
   }
 
   #[test]
   fn should_fail_deserialize_repository_or_string_when_type_is_invalid() {
-    let parsed = parse_field("123");
+    let parsed = PackageJsonParser::parse_str(r#"{"repository":123}"#);
     assert!(parsed.is_err());
   }
 

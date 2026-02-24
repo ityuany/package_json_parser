@@ -47,21 +47,15 @@ impl Validator for Maintainers {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "maintainers";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_deserialize_maintainers_successfully() {
-    let parsed = parse_field(r#"["alice"]"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"maintainers":["alice"]}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_maintainers_when_type_is_invalid() {
-    let parsed = parse_field(r#"{"name":"alice"}"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"maintainers":{"name":"alice"}}"#);
     assert!(parsed.is_err());
   }
 

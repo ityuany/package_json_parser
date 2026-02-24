@@ -73,12 +73,6 @@ impl Validator for Name {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "name";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_pass_validate_name_with_regex() {
     let jsones = [r#"{"name": "test"}"#];
@@ -103,13 +97,13 @@ mod tests {
 
   #[test]
   fn should_deserialize_name_successfully() {
-    let parsed = parse_field(r#""pkg-name""#);
+    let parsed = PackageJsonParser::parse_str(r#"{"name":"pkg-name"}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_name_when_type_is_invalid() {
-    let parsed = parse_field("123");
+    let parsed = PackageJsonParser::parse_str(r#"{"name":123}"#);
     assert!(parsed.is_err());
   }
 

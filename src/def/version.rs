@@ -67,12 +67,6 @@ impl Validator for Version {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "version";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_pass_validate_version() {
     let jsones = [
@@ -102,13 +96,13 @@ mod tests {
 
   #[test]
   fn should_deserialize_version_successfully() {
-    let parsed = parse_field(r#""1.0.0""#);
+    let parsed = PackageJsonParser::parse_str(r#"{"version":"1.0.0"}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_version_when_type_is_invalid() {
-    let parsed = parse_field("true");
+    let parsed = PackageJsonParser::parse_str(r#"{"version":true}"#);
     assert!(parsed.is_err());
   }
 

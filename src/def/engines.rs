@@ -48,21 +48,15 @@ impl Validator for Engines {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "engines";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_deserialize_engines_successfully() {
-    let parsed = parse_field(r#"{"node":">=18"}"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"engines":{"node":">=18"}}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_engines_when_type_is_invalid() {
-    let parsed = parse_field(r#""node""#);
+    let parsed = PackageJsonParser::parse_str(r#"{"engines":"node"}"#);
     assert!(parsed.is_err());
   }
 

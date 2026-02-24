@@ -47,21 +47,15 @@ impl Validator for Scripts {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "scripts";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_deserialize_scripts_successfully() {
-    let parsed = parse_field(r#"{ "test": "cargo test" }"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"scripts":{ "test": "cargo test" }}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_scripts_when_type_is_invalid() {
-    let parsed = parse_field(r#""test""#);
+    let parsed = PackageJsonParser::parse_str(r#"{"scripts":"test"}"#);
     assert!(parsed.is_err());
   }
 

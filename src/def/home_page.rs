@@ -51,21 +51,15 @@ impl Validator for HomePage {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "homepage";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_deserialize_home_page_successfully() {
-    let parsed = parse_field(r#""https://example.com""#);
+    let parsed = PackageJsonParser::parse_str(r#"{"homepage":"https://example.com"}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_home_page_when_type_is_invalid() {
-    let parsed = parse_field("123");
+    let parsed = PackageJsonParser::parse_str(r#"{"homepage":123}"#);
     assert!(parsed.is_err());
   }
 

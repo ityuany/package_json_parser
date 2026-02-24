@@ -46,21 +46,15 @@ impl Validator for Dependencies {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "dependencies";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_deserialize_dependencies_successfully() {
-    let parsed = parse_field(r#"{"foo":"^1.0.0"}"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"dependencies":{"foo":"^1.0.0"}}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_dependencies_when_type_is_invalid() {
-    let parsed = parse_field(r#"["foo"]"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"dependencies":["foo"]}"#);
     assert!(parsed.is_err());
   }
 

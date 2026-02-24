@@ -64,12 +64,6 @@ impl Validator for Type {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "type";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_pass_validate_type() {
     let jsones = [r#"{"type": "commonjs"}"#, r#"{"type": "module"}"#];
@@ -94,13 +88,13 @@ mod tests {
 
   #[test]
   fn should_deserialize_type_successfully() {
-    let parsed = parse_field(r#""module""#);
+    let parsed = PackageJsonParser::parse_str(r#"{"type":"module"}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_type_when_type_is_invalid() {
-    let parsed = parse_field("true");
+    let parsed = PackageJsonParser::parse_str(r#"{"type":true}"#);
     assert!(parsed.is_err());
   }
 

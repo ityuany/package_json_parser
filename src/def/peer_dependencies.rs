@@ -46,21 +46,15 @@ impl Validator for PeerDependencies {
 mod tests {
   use crate::PackageJsonParser;
 
-  const FIELD: &str = "peerDependencies";
-
-  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
-    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
-  }
-
   #[test]
   fn should_deserialize_peer_dependencies_successfully() {
-    let parsed = parse_field(r#"{"react":"^18.0.0"}"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"peerDependencies":{"react":"^18.0.0"}}"#);
     assert!(parsed.is_ok());
   }
 
   #[test]
   fn should_fail_deserialize_peer_dependencies_when_type_is_invalid() {
-    let parsed = parse_field(r#"["react"]"#);
+    let parsed = PackageJsonParser::parse_str(r#"{"peerDependencies":["react"]}"#);
     assert!(parsed.is_err());
   }
 
