@@ -1,5 +1,6 @@
 pub use def::*;
 use miette::{MietteDiagnostic, Severity};
+use serde::de::{self, IgnoredAny, MapAccess, Visitor};
 
 use crate::err::JsonParseError;
 use crate::ext::Validator;
@@ -18,7 +19,7 @@ mod def;
 mod err;
 mod ext;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct PackageJsonParser {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub name: Option<Name>,
@@ -129,6 +130,406 @@ pub struct PackageJsonParser {
 
   #[serde(skip)]
   pub __raw_path: Option<String>,
+}
+
+impl<'de> Deserialize<'de> for PackageJsonParser {
+  fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+  where
+    D: serde::Deserializer<'de>,
+  {
+    enum Field {
+      Name,
+      Version,
+      Description,
+      Keywords,
+      Homepage,
+      Bugs,
+      License,
+      Author,
+      Contributors,
+      Maintainers,
+      Files,
+      Main,
+      Type,
+      Types,
+      Typings,
+      PackageManager,
+      PublishConfig,
+      Bin,
+      Man,
+      Directories,
+      Repository,
+      Module,
+      Readme,
+      Private,
+      Engines,
+      EngineStrict,
+      Os,
+      Cpu,
+      Scripts,
+      Dependencies,
+      DevDependencies,
+      OptionalDependencies,
+      PeerDependencies,
+      Ignore,
+    }
+
+    impl<'de> Deserialize<'de> for Field {
+      fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+      where
+        D: serde::Deserializer<'de>,
+      {
+        struct FieldVisitor;
+
+        impl<'de> Visitor<'de> for FieldVisitor {
+          type Value = Field;
+
+          fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a valid package.json field")
+          }
+
+          fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+          where
+            E: de::Error,
+          {
+            Ok(match value {
+              "name" => Field::Name,
+              "version" => Field::Version,
+              "description" => Field::Description,
+              "keywords" => Field::Keywords,
+              "homepage" => Field::Homepage,
+              "bugs" => Field::Bugs,
+              "license" => Field::License,
+              "author" => Field::Author,
+              "contributors" => Field::Contributors,
+              "maintainers" => Field::Maintainers,
+              "files" => Field::Files,
+              "main" => Field::Main,
+              "type" => Field::Type,
+              "types" => Field::Types,
+              "typings" => Field::Typings,
+              "packageManager" => Field::PackageManager,
+              "publishConfig" => Field::PublishConfig,
+              "bin" => Field::Bin,
+              "man" => Field::Man,
+              "directories" => Field::Directories,
+              "repository" => Field::Repository,
+              "module" => Field::Module,
+              "readme" => Field::Readme,
+              "private" => Field::Private,
+              "engines" => Field::Engines,
+              "engineStrict" => Field::EngineStrict,
+              "os" => Field::Os,
+              "cpu" => Field::Cpu,
+              "scripts" => Field::Scripts,
+              "dependencies" => Field::Dependencies,
+              "devDependencies" => Field::DevDependencies,
+              "optionalDependencies" => Field::OptionalDependencies,
+              "peerDependencies" => Field::PeerDependencies,
+              _ => Field::Ignore,
+            })
+          }
+        }
+
+        deserializer.deserialize_identifier(FieldVisitor)
+      }
+    }
+
+    struct PackageJsonParserVisitor;
+
+    impl<'de> Visitor<'de> for PackageJsonParserVisitor {
+      type Value = PackageJsonParser;
+
+      fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a package.json object")
+      }
+
+      fn visit_map<A>(self, mut map: A) -> std::result::Result<Self::Value, A::Error>
+      where
+        A: MapAccess<'de>,
+      {
+        let mut name = None;
+        let mut version = None;
+        let mut description = None;
+        let mut keywords = None;
+        let mut homepage = None;
+        let mut bugs = None;
+        let mut license = None;
+        let mut author = None;
+        let mut contributors = None;
+        let mut maintainers = None;
+        let mut files = None;
+        let mut main = None;
+        let mut r#type = None;
+        let mut types = None;
+        let mut typings = None;
+        let mut package_manager = None;
+        let mut publish_config = None;
+        let mut bin = None;
+        let mut man = None;
+        let mut directories = None;
+        let mut repository = None;
+        let mut module = None;
+        let mut readme = None;
+        let mut private = None;
+        let mut engines = None;
+        let mut engine_strict = None;
+        let mut os = None;
+        let mut cpu = None;
+        let mut scripts = None;
+        let mut dependencies = None;
+        let mut dev_dependencies = None;
+        let mut optional_dependencies = None;
+        let mut peer_dependencies = None;
+
+        while let Some(field) = map.next_key()? {
+          match field {
+            Field::Name => {
+              if name.is_some() {
+                return Err(de::Error::duplicate_field("name"));
+              }
+              name = Some(map.next_value()?);
+            }
+            Field::Version => {
+              if version.is_some() {
+                return Err(de::Error::duplicate_field("version"));
+              }
+              version = Some(map.next_value()?);
+            }
+            Field::Description => {
+              if description.is_some() {
+                return Err(de::Error::duplicate_field("description"));
+              }
+              description = Some(map.next_value()?);
+            }
+            Field::Keywords => {
+              if keywords.is_some() {
+                return Err(de::Error::duplicate_field("keywords"));
+              }
+              keywords = Some(map.next_value()?);
+            }
+            Field::Homepage => {
+              if homepage.is_some() {
+                return Err(de::Error::duplicate_field("homepage"));
+              }
+              homepage = Some(map.next_value()?);
+            }
+            Field::Bugs => {
+              if bugs.is_some() {
+                return Err(de::Error::duplicate_field("bugs"));
+              }
+              bugs = Some(map.next_value()?);
+            }
+            Field::License => {
+              if license.is_some() {
+                return Err(de::Error::duplicate_field("license"));
+              }
+              license = Some(map.next_value()?);
+            }
+            Field::Author => {
+              if author.is_some() {
+                return Err(de::Error::duplicate_field("author"));
+              }
+              author = Some(map.next_value()?);
+            }
+            Field::Contributors => {
+              if contributors.is_some() {
+                return Err(de::Error::duplicate_field("contributors"));
+              }
+              contributors = Some(map.next_value()?);
+            }
+            Field::Maintainers => {
+              if maintainers.is_some() {
+                return Err(de::Error::duplicate_field("maintainers"));
+              }
+              maintainers = Some(map.next_value()?);
+            }
+            Field::Files => {
+              if files.is_some() {
+                return Err(de::Error::duplicate_field("files"));
+              }
+              files = Some(map.next_value()?);
+            }
+            Field::Main => {
+              if main.is_some() {
+                return Err(de::Error::duplicate_field("main"));
+              }
+              main = Some(map.next_value()?);
+            }
+            Field::Type => {
+              if r#type.is_some() {
+                return Err(de::Error::duplicate_field("type"));
+              }
+              r#type = Some(map.next_value()?);
+            }
+            Field::Types => {
+              if types.is_some() {
+                return Err(de::Error::duplicate_field("types"));
+              }
+              types = Some(map.next_value()?);
+            }
+            Field::Typings => {
+              if typings.is_some() {
+                return Err(de::Error::duplicate_field("typings"));
+              }
+              typings = Some(map.next_value()?);
+            }
+            Field::PackageManager => {
+              if package_manager.is_some() {
+                return Err(de::Error::duplicate_field("packageManager"));
+              }
+              package_manager = Some(map.next_value()?);
+            }
+            Field::PublishConfig => {
+              if publish_config.is_some() {
+                return Err(de::Error::duplicate_field("publishConfig"));
+              }
+              publish_config = Some(map.next_value()?);
+            }
+            Field::Bin => {
+              if bin.is_some() {
+                return Err(de::Error::duplicate_field("bin"));
+              }
+              bin = Some(map.next_value()?);
+            }
+            Field::Man => {
+              if man.is_some() {
+                return Err(de::Error::duplicate_field("man"));
+              }
+              man = Some(map.next_value()?);
+            }
+            Field::Directories => {
+              if directories.is_some() {
+                return Err(de::Error::duplicate_field("directories"));
+              }
+              directories = Some(map.next_value()?);
+            }
+            Field::Repository => {
+              if repository.is_some() {
+                return Err(de::Error::duplicate_field("repository"));
+              }
+              repository = Some(map.next_value()?);
+            }
+            Field::Module => {
+              if module.is_some() {
+                return Err(de::Error::duplicate_field("module"));
+              }
+              module = Some(map.next_value()?);
+            }
+            Field::Readme => {
+              if readme.is_some() {
+                return Err(de::Error::duplicate_field("readme"));
+              }
+              readme = Some(map.next_value()?);
+            }
+            Field::Private => {
+              if private.is_some() {
+                return Err(de::Error::duplicate_field("private"));
+              }
+              private = Some(map.next_value()?);
+            }
+            Field::Engines => {
+              if engines.is_some() {
+                return Err(de::Error::duplicate_field("engines"));
+              }
+              engines = Some(map.next_value()?);
+            }
+            Field::EngineStrict => {
+              if engine_strict.is_some() {
+                return Err(de::Error::duplicate_field("engineStrict"));
+              }
+              engine_strict = Some(map.next_value()?);
+            }
+            Field::Os => {
+              if os.is_some() {
+                return Err(de::Error::duplicate_field("os"));
+              }
+              os = Some(map.next_value()?);
+            }
+            Field::Cpu => {
+              if cpu.is_some() {
+                return Err(de::Error::duplicate_field("cpu"));
+              }
+              cpu = Some(map.next_value()?);
+            }
+            Field::Scripts => {
+              if scripts.is_some() {
+                return Err(de::Error::duplicate_field("scripts"));
+              }
+              scripts = Some(map.next_value()?);
+            }
+            Field::Dependencies => {
+              if dependencies.is_some() {
+                return Err(de::Error::duplicate_field("dependencies"));
+              }
+              dependencies = Some(map.next_value()?);
+            }
+            Field::DevDependencies => {
+              if dev_dependencies.is_some() {
+                return Err(de::Error::duplicate_field("devDependencies"));
+              }
+              dev_dependencies = Some(map.next_value()?);
+            }
+            Field::OptionalDependencies => {
+              if optional_dependencies.is_some() {
+                return Err(de::Error::duplicate_field("optionalDependencies"));
+              }
+              optional_dependencies = Some(map.next_value()?);
+            }
+            Field::PeerDependencies => {
+              if peer_dependencies.is_some() {
+                return Err(de::Error::duplicate_field("peerDependencies"));
+              }
+              peer_dependencies = Some(map.next_value()?);
+            }
+            Field::Ignore => {
+              let _ = map.next_value::<IgnoredAny>()?;
+            }
+          }
+        }
+
+        Ok(PackageJsonParser {
+          name,
+          version,
+          description,
+          keywords,
+          homepage,
+          bugs,
+          license,
+          author,
+          contributors,
+          maintainers,
+          files,
+          main,
+          r#type,
+          types,
+          typings,
+          package_manager,
+          publish_config,
+          bin,
+          man,
+          directories,
+          repository,
+          module,
+          readme,
+          private,
+          engines,
+          engine_strict,
+          os,
+          cpu,
+          scripts,
+          dependencies,
+          dev_dependencies,
+          optional_dependencies,
+          peer_dependencies,
+          __raw_source: None,
+          __raw_path: None,
+        })
+      }
+    }
+
+    deserializer.deserialize_map(PackageJsonParserVisitor)
+  }
 }
 
 impl PackageJsonParser {
