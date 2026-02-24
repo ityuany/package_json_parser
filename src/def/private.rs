@@ -56,7 +56,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"private":"true"}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.private().is_err());
   }
 
   #[test]

@@ -105,7 +105,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"version":true}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.version().is_err());
   }
 
   #[test]

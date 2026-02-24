@@ -63,7 +63,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"types":false}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.types().is_err());
   }
 
   #[test]

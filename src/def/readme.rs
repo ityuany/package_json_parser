@@ -170,7 +170,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"readme":{ "type": true, "value": "README" }}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.readme().is_err());
   }
 
   #[test]
@@ -178,7 +178,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"readme":{ "type": "text" }}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.readme().is_err());
   }
 
   #[test]

@@ -102,7 +102,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"packageManager":false}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.package_manager().is_err());
   }
 
   #[test]

@@ -280,7 +280,7 @@ mod tests {
       let res = PackageJsonParser::parse_str(json);
       assert!(res.is_ok());
       let res = res.unwrap();
-      assert!(res.validate().is_err());
+      assert!(res.author().is_err());
     }
   }
 
@@ -295,7 +295,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"author":{ "email": "a@b.com" }}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.author().is_err());
   }
 
   #[test]

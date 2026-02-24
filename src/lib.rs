@@ -567,10 +567,26 @@ mod tests {
   }
 
   #[test]
+  fn should_report_getter_error_when_field_type_mismatches() {
+    let parser = PackageJsonParser::parse_str(r#"{"name":"pkg","packageManager":false}"#).unwrap();
+
+    assert!(parser.package_manager().is_err());
+    assert!(parser.name().unwrap().is_some());
+  }
+
+  #[test]
+  fn should_report_getter_error_when_field_validation_fails() {
+    let parser =
+      PackageJsonParser::parse_str(r#"{"name":"pkg","packageManager":"invalid"}"#).unwrap();
+
+    assert!(parser.package_manager().is_err());
+    assert!(parser.name().unwrap().is_some());
+  }
+
+  #[test]
   fn should_return_none_for_missing_field() {
     let parser = PackageJsonParser::parse_str(r#"{}"#).unwrap();
     let package_manager = parser.package_manager().unwrap();
-
     assert!(package_manager.is_none());
   }
 

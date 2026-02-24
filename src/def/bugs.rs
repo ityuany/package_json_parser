@@ -265,7 +265,7 @@ mod tests {
     );
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.bugs().is_err());
   }
 
   #[test]

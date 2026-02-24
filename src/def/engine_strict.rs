@@ -56,7 +56,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"engineStrict":"true"}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.engine_strict().is_err());
   }
 
   #[test]

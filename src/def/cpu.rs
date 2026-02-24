@@ -57,7 +57,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"cpu":"x64"}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.cpu().is_err());
   }
 
   #[test]

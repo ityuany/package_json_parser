@@ -249,7 +249,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"repository":{ "url": true }}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.repository().is_err());
   }
 
   #[test]
@@ -257,7 +257,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"repository":123}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.repository().is_err());
   }
 
   #[test]

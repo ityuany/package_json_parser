@@ -62,7 +62,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"homepage":123}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.homepage().is_err());
   }
 
   #[test]

@@ -239,7 +239,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"publishConfig":{ "provenance": "true" }}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.publish_config().is_err());
   }
 
   #[test]

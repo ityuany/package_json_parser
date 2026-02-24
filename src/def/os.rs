@@ -57,7 +57,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"os":"darwin"}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.os().is_err());
   }
 
   #[test]

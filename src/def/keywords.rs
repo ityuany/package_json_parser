@@ -72,7 +72,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"keywords":123}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.keywords().is_err());
   }
 
   #[test]

@@ -58,7 +58,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"contributors":{"name":"alice"}}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.contributors().is_err());
   }
 
   #[test]

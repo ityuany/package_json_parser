@@ -184,7 +184,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"directories":{ "bin": true }}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.directories().is_err());
   }
 
   #[test]

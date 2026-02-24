@@ -63,7 +63,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"description":123}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.description().is_err());
   }
 
   #[test]

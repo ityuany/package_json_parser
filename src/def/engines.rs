@@ -59,7 +59,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"engines":"node"}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.engines().is_err());
   }
 
   #[test]

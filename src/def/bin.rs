@@ -74,7 +74,7 @@ mod tests {
     let parsed = PackageJsonParser::parse_str(r#"{"bin":123}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
-    assert!(parsed.validate().is_err());
+    assert!(parsed.bin().is_err());
   }
 
   #[test]
