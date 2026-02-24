@@ -253,7 +253,17 @@ mod tests {
 
   #[test]
   fn should_fail_deserialize_bugs_when_field_type_is_invalid() {
-    let parsed = PackageJsonParser::parse_str(r#"{"bugs":{ "url": true, "email": "a@b.com" }}"#);
+    let parsed = PackageJsonParser::parse_str(
+      r#"
+      { "bugs":
+        { 
+          "url": true, 
+          "email": "a@b.com" 
+        } 
+      }
+    "#,
+    );
+    println!("{:?}", parsed);
     assert!(parsed.is_err());
   }
 
