@@ -1,11 +1,20 @@
 use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::ext::{Validator, validation_error, value_range};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Deref, DerefMut)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deref, DerefMut)]
 pub struct Name(String);
+
+impl<'de> Deserialize<'de> for Name {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    String::deserialize(deserializer).map(Self)
+  }
+}
 
 impl Name {
   pub fn get_bin_name(&self) -> &str {

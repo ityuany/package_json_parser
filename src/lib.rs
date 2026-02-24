@@ -241,10 +241,8 @@ impl PackageJsonParser {
   }
 
   pub fn parse_str(content: &str) -> Result<Self> {
-    let mut package_json_parser: PackageJsonParser =
-      serde_json::from_str(content).map_err(|e| {
-        Self::build_parse_error(content.to_string(), content, e)
-      })?;
+    let mut package_json_parser: PackageJsonParser = serde_json::from_str(content)
+      .map_err(|e| Self::build_parse_error(content.to_string(), content, e))?;
     package_json_parser.__raw_source = Some(content.to_string());
     Ok(package_json_parser)
   }

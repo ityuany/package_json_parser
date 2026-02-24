@@ -1,11 +1,20 @@
 use crate::def::Person;
 use jsonc_parser::ast::ObjectProp;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::ext::Validator;
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
 pub struct Contributors(pub Vec<Person>);
+
+impl<'de> Deserialize<'de> for Contributors {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    Vec::<Person>::deserialize(deserializer).map(Self)
+  }
+}
 
 impl Validator for Contributors {
   fn validate(&self, _prop: Option<&ObjectProp>) -> miette::Result<()> {
