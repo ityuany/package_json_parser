@@ -1,6 +1,8 @@
 use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
+use serde::de::{SeqAccess, Visitor, value::SeqAccessDeserializer};
 use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt;
 
 use crate::ext::Validator;
 
@@ -12,7 +14,25 @@ impl<'de> Deserialize<'de> for Os {
   where
     D: Deserializer<'de>,
   {
-    Vec::<String>::deserialize(deserializer).map(Self)
+    struct OsVisitor;
+
+    impl<'de> Visitor<'de> for OsVisitor {
+      type Value = Os;
+
+      fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("an array of os entries")
+      }
+
+      fn visit_seq<S>(self, seq: S) -> Result<Self::Value, S::Error>
+      where
+        S: SeqAccess<'de>,
+      {
+        let value = Vec::<String>::deserialize(SeqAccessDeserializer::new(seq))?;
+        Ok(Os(value))
+      }
+    }
+
+    deserializer.deserialize_any(OsVisitor)
   }
 }
 

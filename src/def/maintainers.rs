@@ -1,7 +1,9 @@
 use crate::Person;
 use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
+use serde::de::{SeqAccess, Visitor, value::SeqAccessDeserializer};
 use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt;
 
 use crate::ext::Validator;
 
@@ -13,7 +15,25 @@ impl<'de> Deserialize<'de> for Maintainers {
   where
     D: Deserializer<'de>,
   {
-    Vec::<Person>::deserialize(deserializer).map(Self)
+    struct MaintainersVisitor;
+
+    impl<'de> Visitor<'de> for MaintainersVisitor {
+      type Value = Maintainers;
+
+      fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("an array of maintainers")
+      }
+
+      fn visit_seq<S>(self, seq: S) -> Result<Self::Value, S::Error>
+      where
+        S: SeqAccess<'de>,
+      {
+        let value = Vec::<Person>::deserialize(SeqAccessDeserializer::new(seq))?;
+        Ok(Maintainers(value))
+      }
+    }
+
+    deserializer.deserialize_any(MaintainersVisitor)
   }
 }
 

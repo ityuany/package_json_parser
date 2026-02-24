@@ -1,7 +1,9 @@
 use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
 use rustc_hash::FxHashMap;
+use serde::de::{MapAccess, Visitor, value::MapAccessDeserializer};
 use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt;
 
 use crate::ext::Validator;
 
@@ -13,7 +15,25 @@ impl<'de> Deserialize<'de> for DevDependencies {
   where
     D: Deserializer<'de>,
   {
-    FxHashMap::<String, String>::deserialize(deserializer).map(Self)
+    struct DevDependenciesVisitor;
+
+    impl<'de> Visitor<'de> for DevDependenciesVisitor {
+      type Value = DevDependencies;
+
+      fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("an object map for devDependencies")
+      }
+
+      fn visit_map<M>(self, map: M) -> Result<Self::Value, M::Error>
+      where
+        M: MapAccess<'de>,
+      {
+        let value = FxHashMap::<String, String>::deserialize(MapAccessDeserializer::new(map))?;
+        Ok(DevDependencies(value))
+      }
+    }
+
+    deserializer.deserialize_any(DevDependenciesVisitor)
   }
 }
 

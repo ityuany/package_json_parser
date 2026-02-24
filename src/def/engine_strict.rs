@@ -1,6 +1,8 @@
 use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
+use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt;
 
 use crate::ext::Validator;
 
@@ -12,7 +14,24 @@ impl<'de> Deserialize<'de> for EngineStrict {
   where
     D: Deserializer<'de>,
   {
-    bool::deserialize(deserializer).map(Self)
+    struct EngineStrictVisitor;
+
+    impl<'de> Visitor<'de> for EngineStrictVisitor {
+      type Value = EngineStrict;
+
+      fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a boolean for engineStrict")
+      }
+
+      fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+      where
+        E: serde::de::Error,
+      {
+        Ok(EngineStrict(value))
+      }
+    }
+
+    deserializer.deserialize_any(EngineStrictVisitor)
   }
 }
 

@@ -1,6 +1,8 @@
 use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
+use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt;
 
 use crate::ext::{Validator, validation_error, value_range};
 
@@ -12,7 +14,31 @@ impl<'de> Deserialize<'de> for Version {
   where
     D: Deserializer<'de>,
   {
-    String::deserialize(deserializer).map(Self)
+    struct VersionVisitor;
+
+    impl<'de> Visitor<'de> for VersionVisitor {
+      type Value = Version;
+
+      fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a string for version")
+      }
+
+      fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+      where
+        E: serde::de::Error,
+      {
+        Ok(Version(value.to_string()))
+      }
+
+      fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+      where
+        E: serde::de::Error,
+      {
+        Ok(Version(value))
+      }
+    }
+
+    deserializer.deserialize_any(VersionVisitor)
   }
 }
 
