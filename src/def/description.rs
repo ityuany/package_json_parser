@@ -47,3 +47,32 @@ impl Validator for Description {
     Ok(())
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use crate::PackageJsonParser;
+
+  const FIELD: &str = "description";
+
+  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
+    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
+  }
+
+  #[test]
+  fn should_deserialize_description_successfully() {
+    let parsed = parse_field(r#""hello""#);
+    assert!(parsed.is_ok());
+  }
+
+  #[test]
+  fn should_fail_deserialize_description_when_type_is_invalid() {
+    let parsed = parse_field("123");
+    assert!(parsed.is_err());
+  }
+
+  #[test]
+  fn should_fail_deserialize_description_when_json_is_invalid() {
+    let parsed = PackageJsonParser::parse_str("{");
+    assert!(parsed.is_err());
+  }
+}

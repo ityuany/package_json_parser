@@ -196,6 +196,12 @@ impl Validator for PublishConfig {
 mod tests {
   use crate::PackageJsonParser;
 
+  const FIELD: &str = "publishConfig";
+
+  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
+    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
+  }
+
   #[test]
   fn should_pass_validate_publish_config() {
     let jsones = [
@@ -225,5 +231,23 @@ mod tests {
       let res = res.validate();
       assert!(res.is_err());
     }
+  }
+
+  #[test]
+  fn should_deserialize_publish_config_successfully() {
+    let parsed = parse_field(r#"{ "access": "public", "tag": "latest" }"#);
+    assert!(parsed.is_ok());
+  }
+
+  #[test]
+  fn should_fail_deserialize_publish_config_when_field_type_is_invalid() {
+    let parsed = parse_field(r#"{ "provenance": "true" }"#);
+    assert!(parsed.is_err());
+  }
+
+  #[test]
+  fn should_fail_deserialize_publish_config_when_json_is_invalid() {
+    let parsed = PackageJsonParser::parse_str("{");
+    assert!(parsed.is_err());
   }
 }

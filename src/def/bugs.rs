@@ -204,6 +204,12 @@ impl Validator for Bugs {
 mod tests {
   use crate::PackageJsonParser;
 
+  const FIELD: &str = "bugs";
+
+  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
+    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
+  }
+
   #[test]
   fn should_pass_validate_bugs_item() {
     let jsones = [
@@ -243,5 +249,23 @@ mod tests {
       let res = res.validate();
       assert!(res.is_err());
     }
+  }
+
+  #[test]
+  fn should_deserialize_bugs_successfully() {
+    let parsed = parse_field(r#"{ "url": "https://example.com" }"#);
+    assert!(parsed.is_ok());
+  }
+
+  #[test]
+  fn should_fail_deserialize_bugs_when_field_type_is_invalid() {
+    let parsed = parse_field(r#"{ "url": true, "email": "a@b.com" }"#);
+    assert!(parsed.is_err());
+  }
+
+  #[test]
+  fn should_fail_deserialize_bugs_when_json_is_invalid() {
+    let parsed = PackageJsonParser::parse_str("{");
+    assert!(parsed.is_err());
   }
 }

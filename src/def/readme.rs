@@ -153,3 +153,38 @@ impl Validator for Readme {
     Ok(())
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use crate::PackageJsonParser;
+
+  const FIELD: &str = "readme";
+
+  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
+    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
+  }
+
+  #[test]
+  fn should_deserialize_readme_successfully() {
+    let parsed = parse_field(r#"{ "type": "text", "value": "README" }"#);
+    assert!(parsed.is_ok());
+  }
+
+  #[test]
+  fn should_fail_deserialize_readme_when_field_type_is_invalid() {
+    let parsed = parse_field(r#"{ "type": true, "value": "README" }"#);
+    assert!(parsed.is_err());
+  }
+
+  #[test]
+  fn should_fail_deserialize_readme_content_when_required_field_is_missing() {
+    let parsed = parse_field(r#"{ "type": "text" }"#);
+    assert!(parsed.is_err());
+  }
+
+  #[test]
+  fn should_fail_deserialize_readme_when_json_is_invalid() {
+    let parsed = PackageJsonParser::parse_str("{");
+    assert!(parsed.is_err());
+  }
+}

@@ -47,3 +47,32 @@ impl Validator for Module {
     Ok(())
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use crate::PackageJsonParser;
+
+  const FIELD: &str = "module";
+
+  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
+    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
+  }
+
+  #[test]
+  fn should_deserialize_module_successfully() {
+    let parsed = parse_field(r#""index.mjs""#);
+    assert!(parsed.is_ok());
+  }
+
+  #[test]
+  fn should_fail_deserialize_module_when_type_is_invalid() {
+    let parsed = parse_field("false");
+    assert!(parsed.is_err());
+  }
+
+  #[test]
+  fn should_fail_deserialize_module_when_json_is_invalid() {
+    let parsed = PackageJsonParser::parse_str("{");
+    assert!(parsed.is_err());
+  }
+}

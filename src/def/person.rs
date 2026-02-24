@@ -229,6 +229,12 @@ impl Validator for Person {
 mod tests {
   use crate::PackageJsonParser;
 
+  const FIELD: &str = "author";
+
+  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
+    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
+  }
+
   #[test]
   fn should_pass_validate_person() {
     let jsones = [
@@ -278,8 +284,25 @@ mod tests {
 
     for json in jsones {
       let res = PackageJsonParser::parse_str(json);
-      println!("{:?}", res);
       assert!(res.is_err());
     }
+  }
+
+  #[test]
+  fn should_deserialize_person_successfully() {
+    let parsed = parse_field(r#"{ "name": "test" }"#);
+    assert!(parsed.is_ok());
+  }
+
+  #[test]
+  fn should_fail_deserialize_person_object_when_required_field_is_missing() {
+    let parsed = parse_field(r#"{ "email": "a@b.com" }"#);
+    assert!(parsed.is_err());
+  }
+
+  #[test]
+  fn should_fail_deserialize_person_when_json_is_invalid() {
+    let parsed = PackageJsonParser::parse_str("{");
+    assert!(parsed.is_err());
   }
 }

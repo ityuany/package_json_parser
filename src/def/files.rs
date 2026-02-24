@@ -41,3 +41,32 @@ impl Validator for Files {
     Ok(())
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use crate::PackageJsonParser;
+
+  const FIELD: &str = "files";
+
+  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
+    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
+  }
+
+  #[test]
+  fn should_deserialize_files_successfully() {
+    let parsed = parse_field(r#"["dist", "README.md"]"#);
+    assert!(parsed.is_ok());
+  }
+
+  #[test]
+  fn should_fail_deserialize_files_when_type_is_invalid() {
+    let parsed = parse_field(r#"{"a":"b"}"#);
+    assert!(parsed.is_err());
+  }
+
+  #[test]
+  fn should_fail_deserialize_files_when_json_is_invalid() {
+    let parsed = PackageJsonParser::parse_str("{");
+    assert!(parsed.is_err());
+  }
+}

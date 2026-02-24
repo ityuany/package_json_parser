@@ -47,3 +47,32 @@ impl Validator for Typings {
     Ok(())
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use crate::PackageJsonParser;
+
+  const FIELD: &str = "typings";
+
+  fn parse_field(value: &str) -> miette::Result<PackageJsonParser> {
+    PackageJsonParser::parse_str(&format!(r#"{{"{FIELD}":{value}}}"#))
+  }
+
+  #[test]
+  fn should_deserialize_typings_successfully() {
+    let parsed = parse_field(r#""index.d.ts""#);
+    assert!(parsed.is_ok());
+  }
+
+  #[test]
+  fn should_fail_deserialize_typings_when_type_is_invalid() {
+    let parsed = parse_field("false");
+    assert!(parsed.is_err());
+  }
+
+  #[test]
+  fn should_fail_deserialize_typings_when_json_is_invalid() {
+    let parsed = PackageJsonParser::parse_str("{");
+    assert!(parsed.is_err());
+  }
+}
