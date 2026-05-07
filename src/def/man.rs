@@ -1,4 +1,3 @@
-use derive_more::{Deref, DerefMut};
 use jsonc_parser::ast::ObjectProp;
 use serde::de::{SeqAccess, Visitor, value::SeqAccessDeserializer};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -6,8 +5,11 @@ use std::fmt;
 
 use crate::ext::Validator;
 
-#[derive(Debug, Serialize, Clone, Deref, DerefMut)]
-pub struct Man(Vec<String>);
+#[derive(Debug, Serialize, Clone)]
+pub enum Man {
+  String(String),
+  Array(Vec<String>),
+}
 
 impl<'de> Deserialize<'de> for Man {
   fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -20,7 +22,21 @@ impl<'de> Deserialize<'de> for Man {
       type Value = Man;
 
       fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("an array of man entries")
+        formatter.write_str("a string or an array of man entries")
+      }
+
+      fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+      where
+        E: serde::de::Error,
+      {
+        Ok(Man::String(value.to_string()))
+      }
+
+      fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+      where
+        E: serde::de::Error,
+      {
+        Ok(Man::String(value))
       }
 
       fn visit_seq<S>(self, seq: S) -> Result<Self::Value, S::Error>
@@ -28,7 +44,7 @@ impl<'de> Deserialize<'de> for Man {
         S: SeqAccess<'de>,
       {
         let value = Vec::<String>::deserialize(SeqAccessDeserializer::new(seq))?;
-        Ok(Man(value))
+        Ok(Man::Array(value))
       }
     }
 
@@ -53,8 +69,16 @@ mod tests {
   }
 
   #[test]
-  fn should_fail_deserialize_man_when_type_is_invalid() {
+  fn should_deserialize_single_man_successfully() {
     let parsed = PackageJsonParser::parse_str(r#"{"man":"man1"}"#);
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    assert!(parsed.man().is_ok());
+  }
+
+  #[test]
+  fn should_fail_deserialize_man_when_type_is_invalid() {
+    let parsed = PackageJsonParser::parse_str(r#"{"man":123}"#);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
     assert!(parsed.man().is_err());
